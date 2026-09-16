@@ -1,0 +1,9 @@
+node_modules/
+.DS_Store
+*.log
+
+# Source spreadsheets - never publish to the public repo
+*.xlsx
+*.xls
+*.xlsm
+~$*

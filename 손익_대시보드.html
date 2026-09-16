@@ -1,0 +1,2198 @@
+<title>2026 손익 대시보드</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root{
+  color-scheme: light;
+  --page:#f9f9f7;
+  --surface:#ffffff;
+  --surface-2:#f2f1ed;
+  --surface-3:#e9e8e2;
+  --ink:#161513;
+  --ink-2:#52514e;
+  --muted:#8b8981;
+  --grid:#e6e4dd;
+  --baseline:#c3c2b7;
+  --border:rgba(11,11,11,0.09);
+  --plan:#2a78d6;
+  --actual:#1baf7a;
+  --good:#0ca30c;
+  --critical:#d03b3b;
+  --warning:#c98500;
+  --up:#2a78d6;
+  --down:#d03b3b;
+  --mix-1:#e87ba4;
+  --mix-2:#008300;
+  --mix-3:#4a3aa7;
+  --mix-4:#e34948;
+  --shadow: 0 1px 2px rgba(20,20,15,0.04), 0 6px 20px -8px rgba(20,20,15,0.10);
+  --font-ui:"Noto Sans KR", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-num:"IBM Plex Sans", "Noto Sans KR", system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme: dark;
+    --page:#0d0d0c;
+    --surface:#181816;
+    --surface-2:#211f1c;
+    --surface-3:#2b2926;
+    --ink:#f5f4f0;
+    --ink-2:#c3c2b7;
+    --muted:#8b8981;
+    --grid:#2c2c2a;
+    --baseline:#3a3936;
+    --border:rgba(255,255,255,0.09);
+    --plan:#3987e5;
+    --actual:#199e70;
+    --good:#0ca30c;
+    --critical:#e66767;
+    --warning:#c98500;
+    --up:#3987e5;
+    --down:#e66767;
+    --mix-1:#d55181;
+    --mix-2:#008300;
+    --mix-3:#9085e9;
+    --mix-4:#e66767;
+    --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 10px 28px -10px rgba(0,0,0,0.55);
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme: dark;
+  --page:#0d0d0c;
+  --surface:#181816;
+  --surface-2:#211f1c;
+  --surface-3:#2b2926;
+  --ink:#f5f4f0;
+  --ink-2:#c3c2b7;
+  --muted:#8b8981;
+  --grid:#2c2c2a;
+  --baseline:#3a3936;
+  --border:rgba(255,255,255,0.09);
+  --plan:#3987e5;
+  --actual:#199e70;
+  --good:#0ca30c;
+  --critical:#e66767;
+  --warning:#c98500;
+  --up:#3987e5;
+  --down:#e66767;
+  --mix-1:#d55181;
+  --mix-2:#008300;
+  --mix-3:#9085e9;
+  --mix-4:#e66767;
+  --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 10px 28px -10px rgba(0,0,0,0.55);
+}
+*{box-sizing:border-box;}
+body{background:var(--page); color:var(--ink); font-family:var(--font-ui);}
+.dash{ max-width:1240px; margin:0 auto; padding-block:20px 64px; padding-left:20px; padding-right:20px; color:var(--ink); }
+.tabular{ font-family:var(--font-num); font-variant-numeric: tabular-nums; }
+:focus-visible{ outline:2px solid var(--plan); outline-offset:2px; border-radius:4px; }
+
+/* ---------- header ---------- */
+.topbar{
+  display:flex; align-items:flex-end; justify-content:space-between; gap:16px; flex-wrap:wrap;
+  padding-bottom:18px; margin-bottom:20px; border-bottom:1px solid var(--border);
+}
+.brand{display:flex; align-items:center; gap:12px;}
+.brand-mark{
+  width:38px; height:38px; border-radius:10px; flex:none;
+  background: linear-gradient(155deg, var(--plan), #1c5cab);
+  display:flex; align-items:center; justify-content:center; color:#fff; font-weight:800; font-size:15px;
+}
+.brand h1{ margin:0; font-size:21px; font-weight:800; letter-spacing:-0.01em; text-wrap:balance; }
+.brand p{ margin:2px 0 0; font-size:12.5px; color:var(--ink-2); }
+.asof{ text-align:right; display:flex; align-items:flex-end; gap:14px; }
+.asof-txt{ text-align:right; }
+.asof-label{ display:block; font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:.06em; margin-bottom:3px;}
+.asof-value{ font-size:13.5px; font-weight:600; color:var(--ink); }
+.asof-sub{ display:block; font-size:11.5px; color:var(--muted); margin-top:2px;}
+.badge{ display:inline-flex; align-items:center; gap:4px; font-size:10.5px; font-weight:700; padding:2px 7px; border-radius:20px; letter-spacing:.02em; }
+.badge--confirmed{ background:rgba(42,120,214,0.13); color:var(--plan); }
+.badge--estimated{ background:rgba(139,137,129,0.16); color:var(--ink-2); }
+.theme-btn{
+  appearance:none; border:1px solid var(--border); background:var(--surface); color:var(--ink-2);
+  font:inherit; font-size:12px; font-weight:600; padding:7px 11px; border-radius:9px; cursor:pointer; white-space:nowrap;
+}
+.theme-btn:hover{ color:var(--ink); border-color:var(--baseline); }
+.upload-btn{ display:inline-flex; align-items:center; gap:6px; border:1px solid var(--plan);
+  background:var(--surface); color:var(--plan); font:inherit; font-size:12px; font-weight:700;
+  padding:7px 12px; border-radius:9px; cursor:pointer; white-space:nowrap; }
+.upload-btn:hover{ background:color-mix(in srgb, var(--plan) 9%, var(--surface)); }
+.upload-btn svg{ width:13px; height:13px; flex:none; }
+.upload-btn[aria-busy="true"]{ opacity:.6; cursor:progress; }
+.sr-only{ position:absolute; width:1px; height:1px; padding:0; margin:-1px;
+  overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
+.upload-status{ display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+  border:1px solid var(--border); border-left:3px solid var(--plan); background:var(--surface);
+  border-radius:10px; padding:9px 12px; font-size:12.5px; color:var(--ink-2);
+  margin-bottom:16px; box-shadow:var(--shadow); }
+.upload-status.ok{ border-left-color:var(--good); }
+.upload-status.error{ border-left-color:var(--critical); }
+.upload-status b{ color:var(--ink); font-weight:700; }
+.upload-status .us-label{ flex:none; font-size:10px; font-weight:800; letter-spacing:.03em;
+  padding:2px 7px; border-radius:5px; white-space:nowrap; }
+.upload-status.ok .us-label{ background:rgba(12,163,12,.12); color:var(--good); }
+.upload-status.error .us-label{ background:rgba(208,59,59,.13); color:var(--critical); }
+.upload-status .us-msg{ flex:1; min-width:200px; line-height:1.5; }
+.link-btn{ appearance:none; border:none; background:none; padding:0; cursor:pointer;
+  font:inherit; font-size:12px; font-weight:700; color:var(--plan); text-decoration:underline; }
+
+/* ---------- risk banner ---------- */
+.risk-banner{ display:flex; flex-wrap:wrap; gap:8px; margin-bottom:16px; }
+.risk-chip{
+  display:flex; align-items:center; gap:8px; flex:1 1 280px;
+  background:var(--surface); border:1px solid var(--border); border-left:3px solid var(--muted);
+  border-radius:10px; padding:9px 12px; font-size:12.5px; color:var(--ink-2); box-shadow:var(--shadow);
+}
+.risk-chip b{ color:var(--ink); font-weight:700; }
+.risk-chip .risk-label{ flex:none; font-size:10px; font-weight:800; letter-spacing:.03em; padding:2px 7px; border-radius:5px; white-space:nowrap; }
+.risk-chip.critical{ border-left-color:var(--critical); }
+.risk-chip.critical .risk-label{ background:rgba(208,59,59,.13); color:var(--critical); }
+.risk-chip.warning{ border-left-color:var(--warning); }
+.risk-chip.warning .risk-label{ background:rgba(201,133,0,.14); color:var(--warning); }
+.risk-chip.good{ border-left-color:var(--good); }
+.risk-chip.good .risk-label{ background:rgba(12,163,12,.12); color:var(--good); }
+
+/* ---------- month picker ---------- */
+.month-picker{ display:inline-flex; align-items:center; gap:6px; font-size:11.5px; color:var(--muted); }
+.month-picker select{
+  font-family:inherit; font-size:12.5px; font-weight:600; color:var(--ink);
+  background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:5px 9px; cursor:pointer;
+}
+
+/* ---------- scenario cards ---------- */
+.scenario-grid{ display:grid; grid-template-columns:repeat(4,1fr); gap:12px; }
+@media (max-width: 1100px){ .scenario-grid{ grid-template-columns:repeat(2,1fr); } }
+@media (max-width: 620px){ .scenario-grid{ grid-template-columns:1fr; } }
+
+/* ---------- stat tiles ---------- */
+.stat-grid{ display:grid; grid-template-columns:repeat(4,1fr); gap:12px; }
+@media (max-width: 980px){ .stat-grid{ grid-template-columns:repeat(2,1fr); } }
+@media (max-width: 560px){ .stat-grid{ grid-template-columns:1fr; } }
+.stat-card{ background:var(--surface); border:1px solid var(--border); border-radius:14px;
+  padding:15px 16px 13px; box-shadow:var(--shadow); display:flex; flex-direction:column; gap:5px; }
+.stat-label{ font-size:11.5px; font-weight:700; color:var(--muted); letter-spacing:.02em; }
+.stat-value{ font-size:26px; font-weight:800; letter-spacing:-.015em; line-height:1.08;
+  font-family:var(--font-num); font-variant-numeric:tabular-nums; }
+.stat-value .unit{ font-size:13px; font-weight:600; color:var(--ink-2); margin-left:1px; }
+.stat-delta{ font-size:12px; font-weight:700; font-family:var(--font-num); font-variant-numeric:tabular-nums; }
+.stat-delta.pos{ color:var(--good); } .stat-delta.neg{ color:var(--critical); }
+.stat-delta .base{ color:var(--muted); font-weight:500; margin-left:4px; }
+.stat-foot{ font-size:11px; color:var(--muted); line-height:1.55;
+  border-top:1px dashed var(--border); padding-top:8px; margin-top:3px; }
+.seg-table tr.emph td{ background:var(--surface-2); font-weight:700; }
+.seg-table td.name-cell{ white-space:nowrap; }
+.seg-table .dot{ display:inline-block; width:9px; height:9px; border-radius:3px; margin-right:7px; vertical-align:-1px; }
+.chart-sub{ font-size:12px; font-weight:700; color:var(--ink-2); margin-top:12px; }
+.scenario-card{ background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:16px; box-shadow:var(--shadow); display:flex; flex-direction:column; gap:10px; }
+.scenario-card .sc-top{ display:flex; align-items:center; justify-content:space-between; gap:8px; }
+.scenario-card .sc-title{ font-size:13px; font-weight:700; color:var(--ink); }
+.scenario-card .sc-verdict{ font-size:10.5px; font-weight:800; padding:3px 8px; border-radius:20px; white-space:nowrap; }
+.sc-verdict.good{ background:rgba(12,163,12,.12); color:var(--good); }
+.sc-verdict.warning{ background:rgba(201,133,0,.14); color:var(--warning); }
+.sc-verdict.critical{ background:rgba(208,59,59,.12); color:var(--critical); }
+.scenario-card .sc-rows{ display:flex; flex-direction:column; gap:1px; }
+.sc-row{ display:flex; align-items:baseline; justify-content:space-between; gap:10px; font-size:12px; padding:5px 0; border-bottom:1px dashed var(--border); }
+.sc-row:last-child{ border-bottom:none; }
+.sc-row .k{ color:var(--muted); }
+.sc-row .v{ font-weight:700; color:var(--ink); font-family:var(--font-num); font-variant-numeric:tabular-nums; }
+.sc-row.highlight .k{ color:var(--ink-2); font-weight:600; }
+.sc-row.highlight .v{ font-size:14px; }
+.sc-row .v.pos{ color:var(--good); }
+.sc-row .v.neg{ color:var(--critical); }
+.scenario-card .sc-note{ font-size:11.5px; line-height:1.55; color:var(--ink-2); border-top:1px solid var(--border); padding-top:9px; }
+
+/* ---------- explain blocks ---------- */
+.explain{ font-size:12.5px; line-height:1.7; color:var(--ink-2); background:var(--surface-2); border-radius:10px; padding:12px 14px; margin-top:10px; }
+.explain b{ color:var(--ink); font-weight:700; }
+.explain .pos{ color:var(--good); font-weight:700; }
+.explain .neg{ color:var(--critical); font-weight:700; }
+table.detail .rowsub{ display:block; font-size:10.5px; color:var(--muted); font-weight:400; margin-top:2px; }
+
+/* ---------- view nav ---------- */
+.view-nav{ display:flex; gap:6px; margin-bottom:22px; border-bottom:1px solid var(--border); flex-wrap:wrap; }
+.view-nav-btn{
+  appearance:none; border:none; background:transparent; cursor:pointer;
+  font-family:inherit; font-size:13.5px; font-weight:700; color:var(--muted);
+  padding:10px 4px; margin-bottom:-1px; border-bottom:2.5px solid transparent;
+}
+.view-nav-btn.active{ color:var(--ink); border-bottom-color:var(--plan); }
+.view-nav-btn:hover:not(.active){ color:var(--ink-2); }
+
+/* ---------- insight list ---------- */
+.insight-list{ display:flex; flex-direction:column; gap:9px; }
+.insight-card{
+  display:flex; align-items:flex-start; gap:10px;
+  background:var(--surface); border:1px solid var(--border); border-left:3px solid var(--muted);
+  border-radius:10px; padding:12px 14px; box-shadow:var(--shadow); font-size:13px; line-height:1.6; color:var(--ink-2);
+}
+.insight-card b{ color:var(--ink); font-weight:700; }
+.insight-card p{ margin:0; }
+.insight-card .tag{ flex:none; width:8px; height:8px; border-radius:50%; margin-top:6px; }
+.insight-card.good{ border-left-color:var(--good); } .insight-card.good .tag{ background:var(--good); }
+.insight-card.warning{ border-left-color:var(--warning); } .insight-card.warning .tag{ background:var(--warning); }
+.insight-card.critical{ border-left-color:var(--critical); } .insight-card.critical .tag{ background:var(--critical); }
+.insight-card.neutral{ border-left-color:var(--plan); } .insight-card.neutral .tag{ background:var(--plan); }
+
+/* ---------- section / panel ---------- */
+.section-head{ display:flex; align-items:baseline; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:12px;}
+.section-head h2{ margin:0; font-size:15.5px; font-weight:700; }
+.section-head .hint{ font-size:11.5px; color:var(--muted); }
+.section{ margin-bottom:28px; }
+.panel{ background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:18px 20px 14px; box-shadow:var(--shadow); }
+.panel-head{ display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:6px;}
+.panel-head h2{ margin:0; font-size:15px; font-weight:700;}
+.panel-head .hint{ font-size:11.5px; color:var(--muted); }
+.tabs{ display:flex; gap:4px; background:var(--surface-2); padding:3px; border-radius:10px; }
+.tab-btn{
+  appearance:none; border:none; background:transparent; cursor:pointer;
+  font-family:inherit; font-size:12px; font-weight:600; color:var(--ink-2);
+  padding:6px 12px; border-radius:8px; transition:.15s;
+}
+.tab-btn.active{ background:var(--surface); color:var(--ink); box-shadow:var(--shadow); }
+.chart-legend{ display:flex; gap:16px; flex-wrap:wrap; margin:6px 2px 2px; }
+.legend-item{ display:flex; align-items:center; gap:6px; font-size:11.5px; color:var(--ink-2); }
+.legend-swatch{ width:11px; height:11px; border-radius:3px; flex:none; }
+.legend-swatch.target{ width:4px; height:14px; border-radius:2px; }
+.legend-swatch.hatch{ background-image:repeating-linear-gradient(45deg,var(--baseline) 0 2px,transparent 2px 5px); border:1px solid var(--border); }
+
+/* ---------- KPI grid ---------- */
+.kpi-grid{ display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:28px; }
+@media (max-width: 980px){ .kpi-grid{ grid-template-columns:repeat(2,1fr);} }
+@media (max-width: 560px){ .kpi-grid{ grid-template-columns:1fr;} }
+.kpi-card{ background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:16px 16px 12px; box-shadow:var(--shadow); display:flex; flex-direction:column; gap:8px; }
+.kpi-top{ display:flex; align-items:center; justify-content:space-between; gap:8px;}
+.kpi-title{ font-size:12.5px; font-weight:700; color:var(--ink-2); }
+.kpi-pill{ font-size:10.5px; font-weight:700; padding:3px 8px; border-radius:20px; white-space:nowrap; }
+.kpi-pill--good{ background:rgba(12,163,12,0.12); color:var(--good); }
+.kpi-pill--bad{ background:rgba(208,59,59,0.12); color:var(--critical); }
+.kpi-value{ font-size:27px; font-weight:800; letter-spacing:-0.01em; line-height:1; font-family:var(--font-num); font-variant-numeric:tabular-nums;}
+.kpi-value .unit{ font-size:14px; font-weight:600; color:var(--ink-2); margin-left:2px;}
+.kpi-sub{ font-size:12px; color:var(--ink-2); line-height:1.5;}
+.kpi-sub b.pos{ color:var(--good); font-weight:700;}
+.kpi-sub b.neg{ color:var(--critical); font-weight:700;}
+.kpi-foot{ font-size:11px; color:var(--muted); border-top:1px dashed var(--border); padding-top:8px; font-family:var(--font-num); font-variant-numeric:tabular-nums;}
+.kpi-bullet{ display:block; width:100%; height:auto; margin-top:2px; }
+.kpi-spark{ display:block; width:100%; height:auto; }
+.kpi-scale{ display:flex; justify-content:space-between; font-size:10px; color:var(--muted); font-family:var(--font-num); margin-top:-2px;}
+
+/* ---------- svg chart base ---------- */
+svg.chart{ width:100%; height:auto; display:block; overflow:visible; }
+svg.chart text, svg.kpi-bullet text, svg.kpi-spark text{ font-family:var(--font-num); fill:var(--ink-2); }
+svg.chart .axis-label{ font-size:11px; fill:var(--muted); }
+svg.chart .cat-label{ font-size:11.5px; font-weight:600; fill:var(--ink-2); }
+svg.chart .grid-line{ stroke:var(--grid); stroke-width:1; }
+svg.chart .zero-line{ stroke:var(--baseline); stroke-width:1.4; }
+svg.chart .hit{ cursor:pointer; }
+svg.chart .val-label{ font-size:10.5px; font-weight:700; }
+svg.chart .est-chip{ font-size:10px; font-weight:700; fill:var(--muted); letter-spacing:.04em; }
+svg.chart .band{ fill:var(--ink); opacity:0; transition:opacity .12s; }
+svg.chart .band.on{ opacity:.045; }
+@media (prefers-reduced-motion: no-preference){
+  svg.chart .grow{ animation: growIn .55s cubic-bezier(.2,.75,.3,1) both; }
+  @keyframes growIn{ from{ transform:scaleY(.001);} to{ transform:scaleY(1);} }
+  svg.chart .fade{ animation: fadeIn .5s ease both; }
+  @keyframes fadeIn{ from{opacity:0;} to{opacity:1;} }
+}
+
+.two-col{ display:grid; grid-template-columns:1.05fr 1fr; gap:18px; }
+@media (max-width: 900px){ .two-col{ grid-template-columns:1fr; } }
+.month-split{ display:grid; grid-template-columns:minmax(0,460px) minmax(0,1fr); gap:24px; align-items:start; margin-top:10px; }
+@media (max-width: 900px){ .month-split{ grid-template-columns:1fr; gap:18px; } }
+.month-side{ display:flex; flex-direction:column; gap:9px; min-width:0; }
+.side-head{ display:flex; align-items:baseline; justify-content:space-between; gap:10px; flex-wrap:wrap;
+  padding-bottom:8px; border-bottom:1px solid var(--border); }
+.side-head h3{ margin:0; font-size:13.5px; font-weight:700; color:var(--ink); }
+.side-head .hint{ font-size:11.5px; color:var(--muted); }
+.month-side .insight-card{ background:var(--surface-2); box-shadow:none; font-size:12.5px; padding:11px 13px; }
+
+.tooltip{
+  position:fixed; top:0; left:0; pointer-events:none; z-index:50;
+  background:var(--ink); color:var(--page); font-family:var(--font-ui);
+  font-size:12px; line-height:1.5; padding:8px 11px; border-radius:9px;
+  box-shadow:0 8px 24px -6px rgba(0,0,0,.35);
+  opacity:0; transform:translate(-9999px,-9999px); transition:opacity .1s; max-width:230px;
+}
+.tooltip.show{ opacity:1; }
+.tooltip .t-title{ font-weight:700; margin-bottom:3px; }
+.tooltip .t-row{ display:flex; justify-content:space-between; gap:14px; font-family:var(--font-num); }
+.tooltip .t-row .k{ opacity:.75; font-family:var(--font-ui); }
+
+/* ---------- tables ---------- */
+.seg-table{ width:100%; border-collapse:collapse; font-size:12.5px; margin-top:4px;}
+.seg-table th{ text-align:right; font-weight:600; color:var(--muted); font-size:11px; padding:6px 8px; border-bottom:1px solid var(--border);}
+.seg-table th:first-child{ text-align:left; }
+.seg-table td{ text-align:right; padding:8px 8px; border-bottom:1px solid var(--border); font-family:var(--font-num); font-variant-numeric:tabular-nums;}
+.seg-table td:first-child{ text-align:left; font-weight:600; color:var(--ink); font-family:var(--font-ui);}
+.seg-table .diff.pos{ color:var(--good); font-weight:700;}
+.seg-table .diff.neg{ color:var(--critical); font-weight:700;}
+
+.table-wrap{ overflow-x:auto; }
+table.detail{ width:100%; border-collapse:collapse; min-width:1500px; font-size:12px; }
+table.detail thead th{ background:var(--surface); text-align:right; font-size:10.6px; font-weight:700; color:var(--muted); padding:7px 8px; border-bottom:1px solid var(--border); white-space:nowrap; }
+table.detail thead tr:first-child th{ font-size:11.5px; color:var(--ink-2); text-align:center; border-bottom:1px solid var(--border); }
+table.detail thead th:first-child{ text-align:left; }
+table.detail th.grp-start, table.detail td.grp-start{ border-left:1.5px solid var(--border); }
+table.detail td{ text-align:right; padding:6px 8px; border-bottom:1px solid var(--border); white-space:nowrap; font-family:var(--font-num); font-variant-numeric:tabular-nums;}
+table.detail td:first-child{ text-align:left; position:sticky; left:0; background:var(--surface); font-family:var(--font-ui);}
+table.detail tr.total td:first-child{ background:var(--surface-2); }
+table.detail tr.total td{ font-weight:800; background:var(--surface-2); }
+table.detail tr.sub td:first-child{ padding-left:22px; color:var(--ink-2); font-weight:500; }
+table.detail tr.sub2 td:first-child{ padding-left:34px; color:var(--muted); font-weight:400; font-size:11.5px;}
+table.detail td.diff.pos{ color:var(--good); font-weight:700; }
+table.detail td.diff.neg{ color:var(--critical); font-weight:700; }
+table.detail tr.rate td{ font-style:italic; color:var(--ink-2); }
+table.detail th.col-plan, table.detail td.col-plan{ color:var(--plan); }
+table.detail th.col-actual, table.detail td.col-actual{ color:var(--actual); }
+table.detail td.est{ color:var(--muted); }
+table.detail.compact{ width:auto; min-width:0; max-width:460px; }
+table.detail.compact.structure{ max-width:640px; }
+table.detail.compact.structure td:first-child{ min-width:230px; }
+table.detail.compact th, table.detail.compact td{ padding:6px 12px; white-space:nowrap; }
+table.detail.compact th:first-child, table.detail.compact td:first-child{ min-width:150px; }
+.row-toggle{ display:inline-flex; align-items:center; gap:5px; background:none; border:none; cursor:pointer; font:inherit; font-weight:inherit; color:inherit; padding:0; }
+.row-toggle .chev{ font-size:9px; color:var(--muted); transition:transform .15s; }
+.row-toggle.collapsed .chev{ transform:rotate(-90deg); }
+.row-toggle:hover .chev{ color:var(--ink); }
+
+footer.note{ margin-top:22px; font-size:11.5px; color:var(--muted); text-align:center; line-height:1.7;}
+</style>
+
+<div class="dash">
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-mark">P&amp;L</div>
+      <div>
+        <h1>2026년 손익 대시보드</h1>
+        <p>계획 대비 실적 갭 분석 · 연간 달성률 · 매출직접비 차감손익</p>
+      </div>
+    </div>
+    <div class="asof">
+      <div class="asof-txt">
+        <span class="asof-label">기준 시점</span>
+        <span class="asof-value" id="asofValue">-</span>
+        <span class="asof-sub" id="asofSub"></span>
+      </div>
+      <button class="upload-btn" id="uploadBtn" type="button">
+        <svg viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M8 11V2"></path><path d="M4.5 5.5 8 2l3.5 3.5"></path><path d="M2 11v2.5h12V11"></path>
+        </svg>엑셀 업로드
+      </button>
+      <input type="file" id="xlsxInput" class="sr-only" accept=".xlsx,.xlsm,.xls">
+      <button class="theme-btn" id="themeBtn" type="button">다크 모드</button>
+    </div>
+  </header>
+
+  <div class="upload-status" id="uploadStatus" hidden></div>
+
+  <div class="risk-banner" id="riskBanner"></div>
+
+  <nav class="view-nav" id="viewNav">
+    <button class="view-nav-btn active" type="button" data-view="viewDashboard">대시보드</button>
+    <button class="view-nav-btn" type="button" data-view="viewTrend">당월 분석 리포트</button>
+    <button class="view-nav-btn" type="button" data-view="viewOutlook">차감손익 심층분석</button>
+  </nav>
+
+  <div id="viewDashboard">
+  <section class="section">
+    <div class="section-head">
+      <h2>연간 달성률 (현재 시점 기준)</h2>
+      <span class="hint">가로 막대 = 연간실적 · 세로 눈금 = 연간계획 · 아래 선그래프 = 월별 실적 흐름</span>
+    </div>
+    <div class="kpi-grid" id="kpiGrid"></div>
+  </section>
+
+  <section class="section panel">
+    <div class="panel-head">
+      <h2>계획 대비 실적 gap 분석</h2>
+      <div class="tabs" id="periodTabs"></div>
+    </div>
+    <div class="chart-legend">
+      <span class="legend-item"><span class="legend-swatch" style="background:var(--plan);opacity:.3"></span>계획</span>
+      <span class="legend-item"><span class="legend-swatch" style="background:var(--actual)"></span>실적</span>
+      <span class="legend-item"><span class="legend-swatch target" style="background:var(--plan)"></span>계획 기준선</span>
+      <span class="legend-item"><span class="legend-swatch hatch"></span>추정 구간</span>
+    </div>
+    <div id="gapCharts" style="display:flex; flex-direction:column; gap:26px; margin-top:6px;"></div>
+  </section>
+
+  <section class="section panel">
+    <div class="panel-head">
+      <h2>월별 매출 증감</h2>
+      <span class="hint">전월 대비 매출 변동액 (억원) · 2월부터 비교 가능</span>
+    </div>
+    <div class="chart-legend">
+      <span class="legend-item"><span class="legend-swatch" style="background:var(--up)"></span>전월 대비 증가</span>
+      <span class="legend-item"><span class="legend-swatch" style="background:var(--down)"></span>전월 대비 감소</span>
+    </div>
+    <svg class="chart" id="momChart" viewBox="0 0 960 300" role="img" aria-label="월별 매출 전월 대비 증감"></svg>
+  </section>
+
+  <section class="section panel">
+    <div class="panel-head">
+      <h2>매출직접비 차감손익 분석</h2>
+      <span class="hint">매출에서 이벤트·협찬·캠페인 직접비를 차감한 손익 및 마진율 (연간계획 대비 연간실적)</span>
+    </div>
+    <div class="two-col" style="margin-top:8px;">
+      <div>
+        <div style="font-size:12px;color:var(--ink-2); margin-bottom:2px; font-weight:600;">차감손익 (억원)</div>
+        <svg class="chart" id="dcpAmountChart" viewBox="0 0 480 118" role="img" aria-label="차감손익 계획 대비 실적"></svg>
+      </div>
+      <div>
+        <div style="font-size:12px;color:var(--ink-2); margin-bottom:2px; font-weight:600;">차감손익률 (%)</div>
+        <svg class="chart" id="dcpMarginChart" viewBox="0 0 480 118" role="img" aria-label="차감손익률 계획 대비 실적"></svg>
+      </div>
+    </div>
+    <div style="margin-top:22px;">
+      <div class="panel-head" style="margin-bottom:2px;">
+        <h3 style="margin:0;font-size:13.5px;font-weight:700;">매출 비중 변화</h3>
+        <span class="hint">띠의 굵기가 각 사업의 매출 비중 · 굵어진 띠가 실제로 더 팔린 사업</span>
+      </div>
+      <div class="chart-legend" id="mixLegend"></div>
+      <svg class="chart" id="mixChart" viewBox="0 0 960 232" role="img" aria-label="연간 매출 비중 계획 대비 실적 변화"></svg>
+      <div id="mixCaptions" class="mix-captions"></div>
+    </div>
+    <div style="margin-top:20px;">
+      <div class="panel-head" style="margin-bottom:2px;">
+        <h3 style="margin:0;font-size:13.5px;font-weight:700;">사업 유형별 차감손익률 (연간)</h3>
+        <span class="hint">계획률 대비 실적률 · GAP은 %p</span>
+      </div>
+      <table class="seg-table" id="segTable"></table>
+    </div>
+  </section>
+
+  <section class="section panel">
+    <div class="panel-head">
+      <h2>손익 상세 내역</h2>
+      <span class="hint">계획 vs 실적 · 월별 전체 내역 (* 추정치)</span>
+    </div>
+    <div class="table-wrap">
+      <table class="detail" id="detailTable"></table>
+    </div>
+  </section>
+  </div>
+
+  <div id="viewTrend" hidden>
+  <section class="section">
+    <div class="section-head">
+      <h2 id="monthAnalysisTitle">당월 계획 대비 실적 분석</h2>
+      <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+        <span class="hint" id="monthAnalysisHint">-</span>
+        <label class="month-picker" for="monthSelect">
+          <span>분석 월</span>
+          <select id="monthSelect"></select>
+        </label>
+      </div>
+    </div>
+    <div class="kpi-grid" id="monthKpiGrid"></div>
+  </section>
+
+  <section class="section panel">
+    <div class="panel-head">
+      <h2>당월 손익 상세 내역</h2>
+      <span class="hint" id="monthDetailHint">-</span>
+    </div>
+    <div class="month-split">
+      <div class="table-wrap">
+        <table class="detail compact" id="monthDetailTable"></table>
+      </div>
+      <div class="month-side">
+        <div class="side-head">
+          <h3>당월 인사이트</h3>
+          <span class="hint" id="monthInsightAsOf">-</span>
+        </div>
+        <div class="insight-list" id="monthInsightList"></div>
+      </div>
+    </div>
+  </section>
+  </div>
+
+  <div id="viewOutlook" hidden>
+  <section class="section">
+    <div class="section-head">
+      <h2>매출직접비 차감손익 핵심지표</h2>
+      <span class="hint">차감손익 = 매출 − 매출직접비(이벤트·협찬·캠페인 집행비) · 고정비 부담 전 사업이 벌어들인 이익</span>
+    </div>
+    <div class="stat-grid" id="cmStatGrid"></div>
+  </section>
+
+  <section class="section panel">
+    <div class="panel-head">
+      <h2>사업별 수익성 포지션</h2>
+      <span class="hint">연간 실적 기준 · 매출에서 차지하는 비중과 차감손익에 기여하는 비중의 괴리</span>
+    </div>
+    <div class="chart-legend" id="cmFlowLegend"></div>
+    <svg class="chart" id="cmShareFlow" viewBox="0 0 960 232" role="img" aria-label="사업별 매출 비중과 차감손익 기여 비중"></svg>
+    <div class="explain" id="cmShareExplain"></div>
+    <div class="table-wrap" style="margin-top:14px;">
+      <table class="seg-table" id="cmSegTable"></table>
+    </div>
+  </section>
+
+  <section class="section panel">
+    <div class="panel-head">
+      <h2>차감손익 변동 요인 분해</h2>
+      <span class="hint">계획 대비 증감을 물량 · 믹스 · 마진율로 분해 · 세 요인의 합은 실적 차감손익과 일치</span>
+    </div>
+    <div class="chart-legend">
+      <span class="legend-item"><span class="legend-swatch" style="background:var(--good)"></span>증가 요인</span>
+      <span class="legend-item"><span class="legend-swatch" style="background:var(--critical)"></span>감소 요인</span>
+    </div>
+    <svg class="chart" id="cmBridge" viewBox="0 0 960 330" role="img" aria-label="차감손익 변동 요인 분해"></svg>
+    <div class="explain" id="cmBridgeExplain"></div>
+    <div class="table-wrap" style="margin-top:14px;">
+      <table class="seg-table" id="cmFactorTable"></table>
+    </div>
+  </section>
+
+  <section class="section panel">
+    <div class="panel-head">
+      <h2>월별 차감손익 추이</h2>
+      <span class="hint">금액과 비율을 동일한 기간 축에서 비교 · 9~12월은 추정</span>
+    </div>
+    <div class="chart-legend">
+      <span class="legend-item"><span class="legend-swatch" style="background:var(--plan);opacity:.3"></span>계획</span>
+      <span class="legend-item"><span class="legend-swatch" style="background:var(--actual)"></span>실적</span>
+      <span class="legend-item"><span class="legend-swatch hatch"></span>추정 구간</span>
+    </div>
+    <div class="chart-sub">차감손익 (억원)</div>
+    <svg class="chart" id="cmMonthAmount" viewBox="0 0 960 250" role="img" aria-label="월별 차감손익 금액"></svg>
+    <div class="chart-sub">차감손익률 (%)</div>
+    <svg class="chart" id="cmMonthRate" viewBox="0 0 960 215" role="img" aria-label="월별 차감손익률"></svg>
+  </section>
+
+  <section class="section panel">
+    <div class="panel-head">
+      <h2>고정비 커버리지와 손익분기</h2>
+      <span class="hint">차감손익이 고정비 성격 비용을 얼마나 부담하는가 · 손익분기 매출 = 고정비 ÷ 차감손익률</span>
+    </div>
+    <div class="table-wrap">
+      <table class="detail compact structure" id="structureTable"></table>
+    </div>
+    <svg class="chart" id="bepChart" viewBox="0 0 960 168" style="margin-top:16px;" role="img" aria-label="손익분기 매출과 현재 매출 수준"></svg>
+    <div class="explain" id="bepCaption"></div>
+  </section>
+
+  <section class="section panel">
+    <div class="panel-head">
+      <h2>영업손익 변동 요인 (계획 대비)</h2>
+      <span class="hint">계획 손익에 항목별 증감을 누적하면 실적 손익이 됩니다</span>
+    </div>
+    <div class="chart-legend">
+      <span class="legend-item"><span class="legend-swatch" style="background:var(--good)"></span>개선 요인</span>
+      <span class="legend-item"><span class="legend-swatch" style="background:var(--critical)"></span>악화 요인</span>
+    </div>
+    <svg class="chart" id="varianceWaterfall" viewBox="0 0 960 340" role="img" aria-label="손익 계획 대비 변동 요인"></svg>
+    <div class="explain" id="varianceHint"></div>
+  </section>
+
+  <section class="section">
+    <div class="section-head">
+      <h2>연간 착지 전망</h2>
+      <span class="hint" id="scenarioHint">-</span>
+    </div>
+    <div class="scenario-grid" id="scenarioGrid"></div>
+  </section>
+
+  <section class="section">
+    <div class="section-head">
+      <h2>종합 진단</h2>
+      <span class="hint" id="trendAsOf">-</span>
+    </div>
+    <div class="insight-list" id="insightList"></div>
+  </section>
+  </div>
+
+  <footer class="note" id="footNote"></footer>
+</div>
+
+<div class="tooltip" id="tooltip"></div>
+
+<script>
+var PL = {"data": {"revenue_total": {"label": "매출", "plan_annual": 120, "plan_monthly": [1.8911599600000002, 2.4264408, 3.1543428, 4.410085145384615, 7.219166993846154, 14.983313008461538, 8.289789465384615, 6.993697439230769, 23.912374275384614, 22.88430406769231, 16.89592340230769, 6.939402642307693], "plan_quarterly": [7.47194356, 26.612565147692308, 39.195861179999994, 46.71963011230769], "actual_annual": 135.09885185, "actual_monthly": [2.78601588, 25.17763891, 2.82594402, 2.26301599, 7.584567870000001, 8.817097409999999, 2.51985163, 4.420261529999999, 52.935194859999996, 10.835802489999999, 10.15657547, 4.776885790000001], "actual_quarterly": [30.78959881, 18.66468127, 59.87530801999999, 25.76926375]}, "content_sales": {"label": "콘텐츠판매", "plan_annual": 13.999999999999998, "plan_monthly": [0, 0, 0, 1.0816465153846153, 2.479115993846154, 2.5147617384615386, 1.6058191153846153, 0.36421740923076923, 1.3038563353846153, 1.7668096276923078, 1.7578611723076922, 1.1259120923076924], "plan_quarterly": [0, 6.075524247692307, 3.27389286, 4.650582892307693], "actual_annual": 8.5757102, "actual_monthly": [0.00150306, 0.0025832, 0.11540292, 0.61493388, 0.84059094, 0.92672361, 0.18397259, 1.75, 0.6, 2.14, 1, 0.4], "actual_quarterly": [0.11948918, 2.3822484299999998, 2.53397259, 3.54]}, "ads": {"label": "광고", "plan_annual": 1, "plan_monthly": [0.05, 0.05, 0.05, 0.05, 0.075, 0.075, 0.075, 0.1, 0.1, 0.125, 0.125, 0.125], "plan_quarterly": [0.15000000000000002, 0.2, 0.275, 0.375], "actual_annual": 1.6739277600000002, "actual_monthly": [0.13132755, 0.21911757, 0.1700252, 0.12590719, 0.10574216, 0.13593734, 0.13587075, 0.13, 0.13, 0.13, 0.13, 0.13], "actual_quarterly": [0.52047032, 0.36758669, 0.39587075000000005, 0.39]}, "content_biz": {"label": "콘텐츠제작사업", "plan_annual": 105, "plan_monthly": [1.8411599600000002, 2.3764408, 3.1043428, 3.27843863, 4.665051, 12.39355127, 6.60897035, 6.52948003, 22.50851794, 20.99249444, 15.01306223, 5.68849055], "plan_quarterly": [7.321943559999999, 20.337040899999998, 35.64696832, 41.69404722], "actual_annual": 124.84921389, "actual_monthly": [2.65318527, 24.955938139999997, 2.5405159, 1.5221749199999999, 6.63823477, 7.754436459999999, 2.20000829, 2.54026153, 52.20519486, 8.56580249, 9.026575470000001, 4.24688579], "actual_quarterly": [30.149639309999994, 15.914846149999999, 56.94546468, 21.83926375]}, "event_rev": {"label": "이벤트", "plan_annual": 68, "plan_monthly": [1, 1.5, 2, 1.5, 3, 9, 2.5, 2.5, 17, 16, 9, 3], "plan_quarterly": [4.5, 13.5, 22, 28], "actual_annual": 101.34780639, "actual_monthly": [2.40727273, 23.74981818, 1.66272728, 0.2, 1.03777273, 5.82568182, 0.79044273, 0.79245455, 49.52095456, 5.99331818, 6.85640909, 2.51095454], "actual_quarterly": [27.819818189999996, 7.063454549999999, 51.10385184, 15.360681809999999]}, "sponsor_rev": {"label": "협찬", "plan_annual": 20, "plan_monthly": [0.24115996, 0.2764408, 0.5043428, 1.17843863, 1.065051, 0.89355127, 1.60897035, 2.02948003, 3.50851794, 2.99249444, 4.51306223, 1.18849055], "plan_quarterly": [1.02194356, 3.1370409, 7.14696832, 8.694047220000002], "actual_annual": 11.1342118, "actual_monthly": [0.16409435, 0.42482824, 0.51977208, 0.69804269, 0.68899101, 0.79660586, 0.91210276, 0.93693368, 1.74564454, 1.57006014, 1.45768703, 1.21944942], "actual_quarterly": [1.10869467, 2.18363956, 3.5946809799999997, 4.24719659]}, "campaign_rev": {"label": "캠페인", "plan_annual": 17, "plan_monthly": [0.6, 0.6, 0.6, 0.6, 0.6, 2.5, 2.5, 2, 2, 2, 1.5, 1.5], "plan_quarterly": [1.7999999999999998, 3.7, 6.5, 5], "actual_annual": 12.3671957, "actual_monthly": [0.08181819, 0.78129172, 0.35801654, 0.62413223, 4.91147103, 1.13214878, 0.4974628, 0.8108733, 0.93859576, 1.00242417, 0.71247935, 0.51648183], "actual_quarterly": [1.22112645, 6.66775204, 2.24693186, 2.23138535]}, "cost_total": {"label": "비용", "plan_annual": 163.4704454508766, "plan_monthly": [7.607984922364718, 8.348417002364718, 9.184214402364718, 9.222103562364719, 10.437475162364716, 17.468960422364717, 11.160838982364718, 10.876128402364719, 25.43883420236472, 24.397093956531382, 18.84431301653138, 10.484081416531385], "plan_quarterly": [25.140616327094154, 37.12853914709415, 47.47580158709415, 53.72548838959415], "actual_annual": 177.6058859225, "actual_monthly": [7.061520010000001, 27.23397141, 7.090369410000001, 6.161208029999999, 7.89842598, 10.58960295, 8.168101329999999, 6.4056000399999995, 53.08631757, 15.421569124166666, 16.352289274166665, 12.136910794166669], "actual_quarterly": [41.38586083, 24.64923696, 67.66001894, 43.9107691925]}, "direct_cost_total": {"label": "매출직접비", "plan_annual": 80.33241034837663, "plan_monthly": [1.2294548323647179, 1.712387382364718, 2.320523682364718, 2.2986859723647184, 3.6049840123647177, 9.583509192364717, 4.068531592364717, 4.191862882364718, 18.49323752236472, 17.23782225236472, 11.636191312364716, 3.955219712364718], "plan_quarterly": [5.2623658970941545, 15.487179177094154, 26.753631997094153, 32.829233277094154], "actual_annual": 101.18290532, "actual_monthly": [2.24960636, 21.872102729999998, 1.72222728, 0.31980976, 2.57660433, 4.53033707, 2.48725798, 1.30884632, 46.93283982, 6.64587385, 7.323859000000001, 3.2135408200000004], "actual_quarterly": [25.843936369999998, 7.42675116, 50.728944119999994, 17.18327367]}, "event_dc": {"label": "이벤트", "plan_annual": 62.23241034837662, "plan_monthly": [0.892700862364718, 1.352700862364718, 1.812700862364718, 1.352700862364718, 2.7327008623647178, 8.252700862364717, 2.272700862364718, 2.272700862364718, 15.612700862364719, 14.692700862364719, 8.252700862364717, 2.7327008623647178], "plan_quarterly": [4.0581025870941545, 12.338102587094152, 20.158102587094156, 25.678102587094152], "actual_annual": 92.69667131, "actual_monthly": [2.20660636, 21.56483, 1.54636364, 0.10411496, 0.947495, 4.14868772, 2.02847227, 0.714859, 45.59512718, 5.310579, 6.26167718, 2.267859], "actual_quarterly": [25.3178, 5.20029768, 48.33845845, 13.84011518]}, "sponsor_dc": {"label": "협찬", "plan_annual": 13, "plan_monthly": [0.15675397, 0.17968652, 0.32782282, 0.76598511, 0.69228315, 0.58080833, 1.04583073, 1.31916202, 2.28053666, 1.94512139, 2.93349045, 0.77251885], "plan_quarterly": [0.6642633099999999, 2.03907659, 4.64552941, 5.65113069], "actual_annual": 5.6886831, "actual_monthly": [0.043, 0.13, 0.17586364, 0.2156948, 0.17964933, 0.29164935, 0.37878571, 0.52385845, 1.09446753, 1.00421429, 0.844, 0.8075], "actual_quarterly": [0.34886364, 0.6869934799999999, 1.9971116899999999, 2.65571429]}, "campaign_dc": {"label": "캠페인", "plan_annual": 5.1000000000000005, "plan_monthly": [0.18, 0.18, 0.18, 0.18, 0.18, 0.75, 0.75, 0.6, 0.6, 0.6, 0.45, 0.45], "plan_quarterly": [0.54, 1.1099999999999999, 1.9500000000000002, 1.5], "actual_annual": 2.79755091, "actual_monthly": [0, 0.17727273, 0, 0, 1.44946, 0.09, 0.08, 0.07012887, 0.24324511, 0.33108056, 0.21818182, 0.13818182], "actual_quarterly": [0.17727273, 1.53946, 0.39337398, 0.6874442000000001]}, "program_cost": {"label": "프로그램제작비", "plan_annual": 55.48508724, "plan_monthly": [4.29053977, 4.36292377, 4.63180977, 4.642909769999999, 4.69829577, 5.5182227699999995, 4.76788077, 4.55800377, 4.47513277, 4.851422769999999, 4.90862277, 3.77932277], "plan_quarterly": [13.285273310000001, 14.859428309999998, 13.80101731, 13.53936831], "actual_annual": 51.163196170000006, "actual_monthly": [2.9666144900000004, 3.32629439, 3.4181211200000003, 3.6754809999999996, 3.34306154, 3.98263656, 3.64663041, 2.99693746, 3.9656705, 6.464903, 6.659768, 6.717077700000001], "actual_quarterly": [9.711030000000001, 11.0011791, 10.60923837, 19.8417487]}, "production_cost": {"label": "제작비", "plan_annual": 24.11263324, "plan_monthly": [1.28120277, 1.33780277, 1.77590277, 2.25500277, 2.19160277, 2.96890277, 2.23440277, 2.08990277, 2.08650277, 2.30210277, 2.35930277, 1.23000277], "plan_quarterly": [4.39490831, 7.41550831, 6.41080831, 5.891408310000001], "actual_annual": 22.14843317, "actual_monthly": [0.69127249, 0.74199839, 1.12624012, 1.193582, 1.15113554, 1.56511756, 1.29407241, 0.71150746, 1.4321925, 3.931425, 4.12629, 4.1835997], "actual_quarterly": [2.559511, 3.9098351, 3.4377723700000002, 12.2413147]}, "labor_cost": {"label": "인건비", "plan_annual": 31.372454000000005, "plan_monthly": [3.009337, 3.025121, 2.855907, 2.387907, 2.506693, 2.54932, 2.533478, 2.468101, 2.38863, 2.54932, 2.54932, 2.54932], "plan_quarterly": [8.890365, 7.443919999999999, 7.390209, 7.647959999999999], "actual_annual": 29.014763000000002, "actual_monthly": [2.275342, 2.584296, 2.291881, 2.481899, 2.191926, 2.417519, 2.352558, 2.28543, 2.533478, 2.533478, 2.533478, 2.533478], "actual_quarterly": [7.151519, 7.091343999999999, 7.171466000000001, 7.600434]}, "indirect_cost": {"label": "간접비", "plan_annual": 22.544738239999997, "plan_monthly": [1.81128508, 1.87730508, 1.80148708, 1.7667850800000002, 1.76976449, 1.93436449, 1.81776449, 1.78213449, 2.0541644900000002, 1.83211449, 1.82376449, 2.27380449], "plan_quarterly": [5.49007724, 5.47091406, 5.6540634700000005, 5.92968347], "actual_annual": 20.8355135, "actual_monthly": [1.62728361, 1.6727988, 1.6020435700000002, 1.79595097, 1.64381584, 1.7517464399999998, 1.70489895, 1.775074, 1.77150783, 1.82100783, 1.91587783, 1.75350783], "actual_quarterly": [4.90212598, 5.19151325, 5.25148078, 5.49039349]}, "broadcast_facility": {"label": "방송 시설 유지비", "plan_annual": 8.91885, "plan_monthly": [0.741, 0.741, 0.714, 0.714, 0.714, 0.749, 0.714, 0.714, 0.714, 0.714, 0.764, 0.92585], "plan_quarterly": [2.1959999999999997, 2.177, 2.142, 2.40385], "actual_annual": 7.97785756, "actual_monthly": [0.6204949, 0.6331046, 0.63428608, 0.72049512, 0.67386675, 0.66154397, 0.6532576, 0.66933854, 0.67765, 0.67765, 0.67852, 0.67765], "actual_quarterly": [1.8878855799999998, 2.05590584, 2.00024614, 2.03382]}, "building_cost": {"label": "사옥 관련 비용", "plan_annual": 6.3776882399999995, "plan_monthly": [0.52351842, 0.52453842, 0.52822042, 0.52451842, 0.52749782, 0.52869782, 0.52749782, 0.53986782, 0.53549782, 0.53984782, 0.53549782, 0.54248782], "plan_quarterly": [1.5762772600000001, 1.58071406, 1.60286346, 1.61783346], "actual_annual": 6.05695513, "actual_monthly": [0.49426411, 0.48646802, 0.49006964, 0.46931718, 0.47751986, 0.4791577, 0.50014692, 0.52514706, 0.52609116, 0.54259116, 0.52659116, 0.53959116], "actual_quarterly": [1.47080177, 1.4259947400000001, 1.55138514, 1.60877348]}, "association_fee": {"label": "협회비", "plan_annual": 4.797, "plan_monthly": [0.4125, 0.4775, 0.3985, 0.3885, 0.3885, 0.3885, 0.4005, 0.3885, 0.3885, 0.3885, 0.3885, 0.3885], "plan_quarterly": [1.2885, 1.1655, 1.1775, 1.1655], "actual_annual": 4.8491, "actual_monthly": [0.4118, 0.4752, 0.3884, 0.3945, 0.3945, 0.3945, 0.4065, 0.4057, 0.3945, 0.3945, 0.3945, 0.3945], "actual_quarterly": [1.2754, 1.1835, 1.2067, 1.1835]}, "fees_paid": {"label": "지급수수료", "plan_annual": 1.4300000000000002, "plan_monthly": [0.0986, 0.0986, 0.0986, 0.0986, 0.0986, 0.1046, 0.1386, 0.0986, 0.0986, 0.1486, 0.0986, 0.2494], "plan_quarterly": [0.29579999999999995, 0.30179999999999996, 0.3358, 0.49660000000000004], "actual_annual": 1.3415886700000001, "actual_monthly": [0.08249714, 0.07768408, 0.08229459, 0.08118371, 0.08243066, 0.10312657, 0.0949027, 0.10406922, 0.1141, 0.1631, 0.2631, 0.0931], "actual_quarterly": [0.24247581, 0.26674094000000004, 0.31307192, 0.5193]}, "other_cost": {"label": "기타 비용", "plan_annual": 1.0211999999999999, "plan_monthly": [0.03566666, 0.03566666, 0.06216666, 0.04116666, 0.04116667, 0.16356667, 0.03716667, 0.04116667, 0.31756667, 0.04116667, 0.03716667, 0.16756667], "plan_quarterly": [0.13349998000000002, 0.2459, 0.39590000999999997, 0.24590001], "actual_annual": 0.6100121399999999, "actual_monthly": [0.01822746, 0.0003421, 0.00699326, 0.13045496, 0.01549857, 0.1134182, 0.05009173, 0.07081918, 0.05916667, 0.04316667, 0.05316667, 0.04866667], "actual_quarterly": [0.025562820000000003, 0.25937173, 0.18007758, 0.14500000999999998]}, "company_mgmt_cost": {"label": "전사관리비", "plan_annual": 5.1082096225, "plan_monthly": [0.27670524, 0.39580077, 0.43039387, 0.51372274, 0.36443089, 0.43286397, 0.50666213, 0.34412726, 0.41629942, 0.47573444416666666, 0.47573444416666666, 0.47573444416666666], "plan_quarterly": [1.10289988, 1.3110176, 1.2670888100000002, 1.4272033325], "actual_annual": 4.424270932500001, "actual_monthly": [0.21801555, 0.36277549, 0.34797744, 0.3699663, 0.33494427, 0.32488288, 0.32931399, 0.32474226, 0.41629942, 0.48978444416666667, 0.45278444416666663, 0.45278444416666663], "actual_quarterly": [0.92876848, 1.02979345, 1.07035567, 1.3953533325]}, "profit_total": {"label": "손익", "plan_annual": -43.47044545087661, "plan_monthly": [-5.716824962364718, -5.921976202364718, -6.029871602364718, -4.812018416980104, -3.218308168518562, -2.4856474139031786, -2.8710495169801025, -3.8824309631339498, -1.526459926980106, -1.5127898888390732, -1.9483896142236894, -3.5446787742236925], "plan_quarterly": [-17.668672767094154, -10.515973999401846, -8.27994040709416, -7.005858277286455], "actual_annual": -42.507034072500005, "actual_monthly": [-4.275504130000001, -2.0563325, -4.264425390000001, -3.898192039999999, -0.3138581099999991, -1.772505540000001, -5.648249699999999, -1.98533851, -0.15112271000000277, -4.585766634166667, -6.195713804166665, -7.360025004166668], "actual_quarterly": [-10.596262020000001, -5.984555689999999, -7.784710920000002, -18.1415054425]}, "profit_after_direct_cost": {"label": "매출직접비 차감손익", "plan_annual": 39.66758965162337, "plan_monthly": [0.6617051276352823, 0.714053417635282, 0.8338191176352816, 2.1113991730198967, 3.6141829814814366, 5.399803816096821, 4.221257873019898, 2.8018345568660514, 5.419136753019895, 5.64648181532759, 5.259732089942975, 2.9841829299429747], "plan_quarterly": [2.2095776629058452, 11.125385970598154, 12.442229182905841, 13.890396835213537], "actual_annual": 33.915946529999985, "actual_monthly": [0.5364095199999999, 3.3055361800000007, 1.10371674, 1.94320623, 5.00796354, 4.286760339999999, 0.03259364999999992, 3.1114152099999997, 6.002355039999998, 4.189928639999999, 2.8327164699999994, 1.5633449700000002], "actual_quarterly": [4.945662440000003, 11.237930109999999, 9.146363899999997, 8.585990080000002]}, "margin_after_direct_cost": {"label": "매출직접비 차감손익률", "plan_annual": 0.33056324709686147, "plan_monthly": [0.34989379091723277, 0.2942801726855574, 0.2643400449802988, 0.47876607897912954, 0.5006371212305076, 0.36038784032926396, 0.5092117104597719, 0.40062278661774975, 0.22662478809552392, 0.2467403770997433, 0.3113018427406333, 0.4300345553879818], "plan_quarterly": [0.29571658901902165, 0.41805011688483873, 0.31743732139898967, 0.29731392996526074], "actual_annual": 0.25104540908798245, "actual_monthly": [0.19253641870842456, 0.13128856886922446, 0.39056567723517754, 0.8586798496284598, 0.6602833049735766, 0.4861872496881034, 0.012934749654288147, 0.7038984433122445, 0.11339062897330757, 0.3866745120046941, 0.27890468380480604, 0.3272728381475497], "actual_quarterly": [0.160627699974893, 0.602096009432686, 0.1527568575838451, 0.33318724831632035]}}, "confirmed_monthly": ["확정", "확정", "확정", "확정", "확정", "확정", "확정", "확정", "추정", "추정", "추정", "추정"], "confirmed_quarterly": ["확정", "확정", "추정", "추정"]};
+var SEG = {"event_margin": {"label": "이벤트", "plan_annual": 0.08481749487681445, "actual_annual": 0.08536085178508226}, "sponsor_margin": {"label": "협찬", "plan_annual": 0.35, "actual_annual": 0.48908075378986404}, "campaign_margin": {"label": "캠페인", "plan_annual": 0.7, "actual_annual": 0.7737926222029461}};
+</script>
+<script>
+/* ---------------- helpers ---------------- */
+const MONTHS = ['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'];
+const QUARTERS = ['1Q','2Q','3Q','4Q'];
+const cssVar = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+const fmt1 = (v) => (Math.round(v*10)/10).toLocaleString('ko-KR', {minimumFractionDigits:1, maximumFractionDigits:1});
+const fmtSigned = (v) => (v>=0?'+':'') + fmt1(v);
+const fmtPct = (v, digits=1) => (Math.round(v*100*Math.pow(10,digits))/Math.pow(10,digits)).toLocaleString('ko-KR',{minimumFractionDigits:digits,maximumFractionDigits:digits}) + '%';
+const fmtPctSigned = (v, digits=1) => (v>=0?'+':'') + fmtPct(v, digits);
+const sum = (arr) => arr.reduce((a,b)=>a+b,0);
+const cumsum = (arr) => { let acc=0; return arr.map(v=>acc+=v); };
+
+let elapsedMonths = PL.confirmed_monthly.filter(c=>c==='확정').length;
+let timeElapsedPct = elapsedMonths/12;
+let sourceName = "(AI) '26년 손익_8월.xlsx";
+const PL_ORIGINAL = JSON.parse(JSON.stringify(PL));
+const SEG_ORIGINAL = JSON.parse(JSON.stringify(SEG));
+function ytd(arr){ return sum(arr.slice(0, elapsedMonths)); }
+function recomputeDerived(){
+  elapsedMonths = PL.confirmed_monthly.filter(c=>c==='확정').length;
+  timeElapsedPct = elapsedMonths/12;
+  monthIdx = Math.min(Math.max(elapsedMonths-1, 0), 11);
+  monthLabel = MONTHS[monthIdx];
+}
+
+let ANIM = true;   // 최초 진입에만 그려지는 애니메이션 (리사이즈·테마 전환 시엔 끔)
+
+/* ---------------- tooltip ---------------- */
+const tipEl = document.getElementById('tooltip');
+function showTip(clientX, clientY, html){
+  tipEl.innerHTML = html;
+  tipEl.classList.add('show');
+  const pad = 14;
+  let x = clientX + pad, y = clientY + pad;
+  const rect = tipEl.getBoundingClientRect();
+  if (x + rect.width > window.innerWidth - 8) x = clientX - rect.width - pad;
+  if (y + rect.height > window.innerHeight - 8) y = clientY - rect.height - pad;
+  tipEl.style.transform = `translate(${x}px, ${y}px)`;
+}
+function hideTip(){ tipEl.classList.remove('show'); tipEl.style.transform = 'translate(-9999px,-9999px)'; }
+
+/* ---------------- svg core ---------------- */
+const SVGNS = 'http://www.w3.org/2000/svg';
+let UID = 0;
+function el(tag, attrs, parent){
+  const n = document.createElementNS(SVGNS, tag);
+  for (const k in attrs){ n.setAttribute(k, attrs[k]); }
+  if (parent) parent.appendChild(n);
+  return n;
+}
+/* 세로 그라데이션 + 추정구간 해치 패턴을 svg 안에 정의 */
+function addDefs(svg, colors){
+  const id = 'g'+(++UID);
+  const defs = el('defs', {}, svg);
+  Object.keys(colors).forEach(k=>{
+    const lg = el('linearGradient', {id:`${id}-${k}`, x1:0, y1:0, x2:0, y2:1}, defs);
+    el('stop', {offset:'0%', 'stop-color':colors[k], 'stop-opacity':1}, lg);
+    el('stop', {offset:'100%', 'stop-color':colors[k], 'stop-opacity':0.68}, lg);
+    const lh = el('linearGradient', {id:`${id}-${k}-h`, x1:0, y1:0, x2:1, y2:0}, defs);
+    el('stop', {offset:'0%', 'stop-color':colors[k], 'stop-opacity':1}, lh);
+    el('stop', {offset:'100%', 'stop-color':colors[k], 'stop-opacity':0.7}, lh);
+  });
+  const p = el('pattern', {id:`${id}-hatch`, width:7, height:7, patternUnits:'userSpaceOnUse', patternTransform:'rotate(45)'}, defs);
+  el('line', {x1:0, y1:0, x2:0, y2:7, stroke:cssVar('--baseline'), 'stroke-width':1.6, opacity:0.45}, p);
+  return id;
+}
+const grad = (id,k) => `url(#${id}-${k})`;
+/* 데이터가 끝나는 쪽만 둥근 막대 */
+function barPath(x, y, w, h, r, up){
+  r = Math.max(0, Math.min(r, w/2, h));
+  return up
+    ? `M${x},${y+h} L${x},${y+r} Q${x},${y} ${x+r},${y} L${x+w-r},${y} Q${x+w},${y} ${x+w},${y+r} L${x+w},${y+h} Z`
+    : `M${x},${y} L${x},${y+h-r} Q${x},${y+h} ${x+r},${y+h} L${x+w-r},${y+h} Q${x+w},${y+h} ${x+w},${y+h-r} L${x+w},${y} Z`;
+}
+function hBarPath(x, y, w, h, r){   // 오른쪽 끝만 둥근 가로 막대
+  r = Math.max(0, Math.min(r, h/2, w));
+  return `M${x},${y} L${x+w-r},${y} Q${x+w},${y} ${x+w},${y+r} L${x+w},${y+h-r} Q${x+w},${y+h} ${x+w-r},${y+h} L${x},${y+h} Z`;
+}
+function growAttrs(up, delay){
+  if (!ANIM) return {};
+  return {class:'grow', style:`transform-box:fill-box; transform-origin:${up?'bottom':'top'}; animation-delay:${delay}ms`};
+}
+function niceTicks(min, max, count){
+  if (min === max){ min -= 1; max += 1; }
+  const span = max - min, raw = span / count;
+  const mag = Math.pow(10, Math.floor(Math.log10(raw)));
+  const norm = raw / mag;
+  let step;
+  if (norm < 1.5) step = 1*mag; else if (norm < 3) step = 2*mag; else if (norm < 7) step = 5*mag; else step = 10*mag;
+  const ticks = [];
+  for (let t=Math.floor(min/step)*step; t<=Math.ceil(max/step)*step+1e-9; t+=step) ticks.push(Math.round(t*1e6)/1e6);
+  return ticks;
+}
+/* 세로축 눈금 + 추정구간 음영을 한 번에 */
+function drawFrame(g, {ticks, y, margin, innerW, innerH, valueFmt, estFlags, bandW, defsId}){
+  ticks.forEach(t=>{
+    const ty = y(t);
+    el('line', {class:'grid-line', x1:margin.left, x2:margin.left+innerW, y1:ty, y2:ty}, g);
+    el('text', {class:'axis-label', x:margin.left-8, y:ty+3.5, 'text-anchor':'end'}, g).textContent = valueFmt(t);
+  });
+  if (estFlags){
+    const first = estFlags.indexOf(true);
+    if (first > 0){
+      const x0 = margin.left + first*bandW;
+      el('rect', {x:x0, y:margin.top, width:margin.left+innerW-x0, height:innerH, fill:`url(#${defsId}-hatch)`}, g);
+      el('line', {x1:x0, x2:x0, y1:margin.top-10, y2:margin.top+innerH, stroke:cssVar('--baseline'), 'stroke-width':1, 'stroke-dasharray':'4,4'}, g);
+      el('text', {class:'est-chip', x:x0+7, y:margin.top-13}, g).textContent = '추정 →';
+      el('text', {class:'est-chip', x:x0-7, y:margin.top-13, 'text-anchor':'end'}, g).textContent = '← 확정';
+    }
+  }
+}
+
+/* ---------------- ① 타깃 막대: 계획(넓고 옅게) 위에 실적(좁고 진하게) ---------------- */
+function renderTargetBar(svg, opts){
+  const {labels, plan, actual, estFlags=null, unit='억', valueFmt=fmt1} = opts;
+  svg.innerHTML = '';
+  const vb = svg.viewBox.baseVal, W = vb.width, H = vb.height;
+  const margin = {top:34, right:12, bottom:34, left:44};
+  const innerW = W-margin.left-margin.right, innerH = H-margin.top-margin.bottom;
+  const defsId = addDefs(svg, {plan:cssVar('--plan'), actual:cssVar('--actual'),
+                               good:cssVar('--good'), critical:cssVar('--critical')});
+  const g = el('g', {}, svg);
+
+  const all = plan.concat(actual);
+  const ticks = niceTicks(Math.min(0, ...all), Math.max(0, ...all), 5);
+  const vmin = ticks[0], vmax = ticks[ticks.length-1];
+  const y = v => margin.top + innerH - ((v-vmin)/(vmax-vmin))*innerH;
+  const zeroY = y(0);
+  const n = labels.length, bandW = innerW/n;
+
+  drawFrame(g, {ticks, y, margin, innerW, innerH, valueFmt, estFlags, bandW, defsId});
+
+  const planW = bandW*0.62, actW = bandW*0.30;
+  const bands = [];
+  labels.forEach((lab,i)=>{
+    bands.push(el('rect', {class:'band', x:margin.left+i*bandW+1, y:margin.top-14,
+                           width:bandW-2, height:innerH+14, rx:5}, g));
+  });
+
+  labels.forEach((lab,i)=>{
+    const cx = margin.left + i*bandW + bandW/2;
+    const pv = plan[i], av = actual[i];
+
+    // 계획 — 넓고 옅은 기준 막대
+    const pUp = pv>=0, pTop = pUp ? y(pv) : zeroY, pH = Math.max(Math.abs(y(pv)-zeroY), 1.5);
+    el('path', {d:barPath(cx-planW/2, pTop, planW, pH, 4, pUp), fill:cssVar('--plan'), opacity:0.22}, g);
+    // 계획 기준선 (타깃 눈금)
+    el('line', {x1:cx-planW/2-2, x2:cx+planW/2+2, y1:y(pv), y2:y(pv),
+                stroke:cssVar('--plan'), 'stroke-width':2.4, 'stroke-linecap':'round'}, g);
+
+    // 실적 — 좁고 진한 막대
+    const aUp = av>=0, aTop = aUp ? y(av) : zeroY, aH = Math.max(Math.abs(y(av)-zeroY), 1.5);
+    el('path', Object.assign({d:barPath(cx-actW/2, aTop, actW, aH, 4, aUp), fill:grad(defsId,'actual')},
+                             growAttrs(aUp, i*28)), g);
+
+    // GAP 칩
+    const gap = av - pv;
+    const gapCol = gap>=0 ? cssVar('--good') : cssVar('--critical');
+    const topY = Math.min(aTop, pTop, y(pv));
+    el('text', {class:'val-label', x:cx, y:topY-8, 'text-anchor':'middle', fill:gapCol}, g)
+      .textContent = fmtSigned(gap);
+
+    // 호버
+    const hit = el('rect', {class:'hit', x:margin.left+i*bandW, y:margin.top-14,
+                            width:bandW, height:innerH+14, fill:'transparent'}, g);
+    hit.addEventListener('mousemove', ev=>{
+      bands.forEach(b=>b.classList.remove('on')); bands[i].classList.add('on');
+      const gp = pv!==0 ? gap/Math.abs(pv) : null;
+      showTip(ev.clientX, ev.clientY,
+        `<div class="t-title">${lab}${estFlags&&estFlags[i]?' (추정)':''}</div>
+         <div class="t-row"><span class="k">계획</span><span>${valueFmt(pv)}${unit}</span></div>
+         <div class="t-row"><span class="k">실적</span><span>${valueFmt(av)}${unit}</span></div>
+         <div class="t-row"><span class="k">GAP</span><span>${fmtSigned(gap)}${unit}${gp!==null?` (${fmtPctSigned(gp)})`:''}</span></div>`);
+    });
+    hit.addEventListener('mouseleave', ()=>{ bands[i].classList.remove('on'); hideTip(); });
+
+    el('text', {class:'axis-label', x:cx, y:margin.top+innerH+19, 'text-anchor':'middle'}, g).textContent = lab;
+  });
+
+  el('line', {class:'zero-line', x1:margin.left, x2:margin.left+innerW, y1:zeroY, y2:zeroY}, g);
+}
+
+/* ---------------- ② 누적 추이: 계획선 + 실적 면적 + 갭 밴드 ---------------- */
+function renderCumulative(svg, opts){
+  const {labels, plan, actual, estFlags=null, unit='억', valueFmt=fmt1} = opts;
+  svg.innerHTML = '';
+  const vb = svg.viewBox.baseVal, W = vb.width, H = vb.height;
+  const margin = {top:34, right:16, bottom:34, left:48};
+  const innerW = W-margin.left-margin.right, innerH = H-margin.top-margin.bottom;
+  const defsId = addDefs(svg, {actual:cssVar('--actual'), plan:cssVar('--plan')});
+  const g = el('g', {}, svg);
+
+  const cp = cumsum(plan), ca = cumsum(actual);
+  const all = cp.concat(ca);
+  const ticks = niceTicks(Math.min(0, ...all), Math.max(0, ...all), 5);
+  const vmin = ticks[0], vmax = ticks[ticks.length-1];
+  const y = v => margin.top + innerH - ((v-vmin)/(vmax-vmin))*innerH;
+  const n = labels.length, bandW = innerW/n;
+  const x = i => margin.left + bandW*(i+0.5);
+
+  drawFrame(g, {ticks, y, margin, innerW, innerH, valueFmt, estFlags, bandW, defsId});
+
+  // 계획과 실적 사이를 메우는 갭 밴드 (실적이 위면 초록, 아래면 빨강)
+  const aheadCol = ca[n-1] >= cp[n-1] ? cssVar('--good') : cssVar('--critical');
+  const bandPath = ca.map((v,i)=>(i?'L':'M')+x(i).toFixed(1)+' '+y(v).toFixed(1)).join(' ')
+    + ' ' + cp.map((v,i)=>'L'+x(n-1-i).toFixed(1)+' '+y(cp[n-1-i]).toFixed(1)).join(' ') + ' Z';
+  el('path', Object.assign({d:bandPath, fill:aheadCol, opacity:0.13}, ANIM?{class:'fade'}:{}), g);
+
+  // 계획선 (점선)
+  el('path', {d:cp.map((v,i)=>(i?'L':'M')+x(i).toFixed(1)+' '+y(v).toFixed(1)).join(' '),
+              fill:'none', stroke:cssVar('--plan'), 'stroke-width':2, 'stroke-dasharray':'6,4',
+              'stroke-linecap':'round', 'stroke-linejoin':'round'}, g);
+  // 실적선
+  el('path', {d:ca.map((v,i)=>(i?'L':'M')+x(i).toFixed(1)+' '+y(v).toFixed(1)).join(' '),
+              fill:'none', stroke:cssVar('--actual'), 'stroke-width':2.8,
+              'stroke-linecap':'round', 'stroke-linejoin':'round'}, g);
+
+  ca.forEach((v,i)=>{
+    const last = i===n-1;
+    el('circle', {cx:x(i), cy:y(v), r:last?5:3.2, fill:cssVar('--actual'),
+                  stroke:cssVar('--surface'), 'stroke-width':2}, g);
+  });
+  // 끝점 값 라벨
+  el('text', {class:'val-label', x:x(n-1), y:y(ca[n-1])-13, 'text-anchor':'end', fill:cssVar('--actual')}, g)
+    .textContent = valueFmt(ca[n-1])+unit;
+  el('text', {class:'val-label', x:x(n-1), y:y(cp[n-1])+16, 'text-anchor':'end', fill:cssVar('--plan')}, g)
+    .textContent = '계획 '+valueFmt(cp[n-1])+unit;
+
+  labels.forEach((lab,i)=>{
+    el('text', {class:'axis-label', x:x(i), y:margin.top+innerH+19, 'text-anchor':'middle'}, g).textContent = lab;
+    const hit = el('rect', {class:'hit', x:margin.left+i*bandW, y:margin.top, width:bandW, height:innerH, fill:'transparent'}, g);
+    hit.addEventListener('mousemove', ev=>{
+      const d = ca[i]-cp[i];
+      showTip(ev.clientX, ev.clientY,
+        `<div class="t-title">${lab}까지 누계${estFlags&&estFlags[i]?' (추정)':''}</div>
+         <div class="t-row"><span class="k">계획 누계</span><span>${valueFmt(cp[i])}${unit}</span></div>
+         <div class="t-row"><span class="k">실적 누계</span><span>${valueFmt(ca[i])}${unit}</span></div>
+         <div class="t-row"><span class="k">차이</span><span>${fmtSigned(d)}${unit}</span></div>`);
+    });
+    hit.addEventListener('mouseleave', hideTip);
+  });
+}
+
+/* ---------------- ③ 발산 막대 (전월 대비 증감) ---------------- */
+function renderDivergingBar(svg, opts){
+  const {labels, values, unit='억', pctValues=null, estFlags=null} = opts;
+  svg.innerHTML = '';
+  const vb = svg.viewBox.baseVal, W = vb.width, H = vb.height;
+  const margin = {top:34, right:14, bottom:32, left:46};
+  const innerW = W-margin.left-margin.right, innerH = H-margin.top-margin.bottom;
+  const defsId = addDefs(svg, {up:cssVar('--up'), down:cssVar('--down')});
+  const g = el('g', {}, svg);
+
+  const present = values.filter(v=>v!==null);
+  const ticks = niceTicks(Math.min(0, ...present), Math.max(0, ...present), 5);
+  const vmin = ticks[0], vmax = ticks[ticks.length-1];
+  const y = v => margin.top + innerH - ((v-vmin)/(vmax-vmin))*innerH;
+  const zeroY = y(0);
+  const n = labels.length, bandW = innerW/n, barW = bandW*0.46;
+
+  drawFrame(g, {ticks, y, margin, innerW, innerH, valueFmt:fmt1, estFlags, bandW, defsId});
+
+  labels.forEach((lab,i)=>{
+    const v = values[i], cx = margin.left + i*bandW + bandW/2;
+    if (v===null){
+      const t = el('text', {class:'axis-label', x:cx, y:zeroY+4, 'text-anchor':'middle'}, g);
+      t.textContent = '–';
+    } else {
+      const up = v>=0;
+      const by = up ? y(v) : zeroY, bh = Math.max(Math.abs(y(v)-zeroY), 2);
+      el('path', Object.assign({d:barPath(cx-barW/2, by, barW, bh, 4, up), fill:grad(defsId, up?'up':'down')},
+                               growAttrs(up, i*26)), g);
+      el('text', {class:'val-label', x:cx, y: up ? by-7 : by+bh+13, 'text-anchor':'middle',
+                  fill: up?cssVar('--up'):cssVar('--down')}, g).textContent = fmtSigned(v);
+      const hit = el('rect', {class:'hit', x:margin.left+i*bandW, y:margin.top, width:bandW, height:innerH, fill:'transparent'}, g);
+      hit.addEventListener('mousemove', ev=>{
+        const pctTxt = pctValues && pctValues[i]!==null
+          ? `<div class="t-row"><span class="k">증감률</span><span>${fmtPctSigned(pctValues[i])}</span></div>` : '';
+        showTip(ev.clientX, ev.clientY, `<div class="t-title">${lab}</div><div class="t-row"><span class="k">전월대비</span><span>${fmtSigned(v)}${unit}</span></div>${pctTxt}`);
+      });
+      hit.addEventListener('mouseleave', hideTip);
+    }
+    el('text', {class:'axis-label', x:cx, y:margin.top+innerH+19, 'text-anchor':'middle'}, g).textContent = lab;
+  });
+  el('line', {class:'zero-line', x1:margin.left, x2:margin.left+innerW, y1:zeroY, y2:zeroY}, g);
+}
+
+/* ---------------- ④ 워터폴 (변동 요인 브릿지) ---------------- */
+function renderWaterfall(svg, opts){
+  const {items, unit='억', valueFmt=fmt1, favHigh=true} = opts;
+  svg.innerHTML = '';
+  const vb = svg.viewBox.baseVal, W = vb.width, H = vb.height;
+  const margin = {top:34, right:14, bottom:54, left:54};
+  const innerW = W-margin.left-margin.right, innerH = H-margin.top-margin.bottom;
+  const defsId = addDefs(svg, {total:cssVar('--plan'), good:cssVar('--good'), critical:cssVar('--critical')});
+  const g = el('g', {}, svg);
+
+  let running = 0;
+  const bars = items.map(it=>{
+    if (it.type === 'total'){ running = it.value; return Object.assign({}, it, {from:0, to:it.value}); }
+    const from = running; running = from + it.value;
+    return Object.assign({}, it, {from, to:running});
+  });
+
+  const extents = bars.reduce((a,b)=>a.concat([b.from,b.to]), []);
+  const ticks = niceTicks(Math.min(...extents), Math.max(...extents), 5);
+  const vmin = ticks[0], vmax = ticks[ticks.length-1];
+  const y = v => margin.top + innerH - ((v-vmin)/(vmax-vmin))*innerH;
+
+  ticks.forEach(t=>{
+    const ty = y(t);
+    el('line', {class:'grid-line', x1:margin.left, x2:margin.left+innerW, y1:ty, y2:ty}, g);
+    el('text', {class:'axis-label', x:margin.left-8, y:ty+3.5, 'text-anchor':'end'}, g).textContent = valueFmt(t);
+  });
+  if (vmin<0 && vmax>0) el('line', {class:'zero-line', x1:margin.left, x2:margin.left+innerW, y1:y(0), y2:y(0)}, g);
+
+  const n = bars.length, bandW = innerW/n, barW = Math.min(bandW*0.58, 74);
+
+  bars.forEach((b,i)=>{
+    const cx = margin.left + i*bandW + bandW/2, bx = cx - barW/2;
+    const yTop = y(Math.max(b.from, b.to));
+    const h = Math.max(Math.abs(y(b.from)-y(b.to)), 2.5);
+    const favorable = favHigh ? b.value>=0 : b.value<=0;
+    const key = b.type==='total' ? 'total' : (favorable ? 'good' : 'critical');
+    const solid = b.type==='total' ? cssVar('--plan') : (favorable ? cssVar('--good') : cssVar('--critical'));
+
+    if (i>0){
+      const prevCx = margin.left + (i-1)*bandW + bandW/2;
+      const level = y(b.type==='total' ? bars[i-1].to : b.from);
+      el('line', {x1:prevCx+barW/2, x2:bx, y1:level, y2:level,
+                  stroke:cssVar('--baseline'), 'stroke-width':1.2, 'stroke-dasharray':'3,3'}, g);
+    }
+
+    const up = b.to >= b.from;
+    el('path', Object.assign({d:barPath(bx, yTop, barW, h, 4, up), fill:grad(defsId,key)},
+                             growAttrs(up, i*45)), g);
+    // 합계 막대는 바닥 굵은 선으로 "기준"임을 표시
+    if (b.type==='total'){
+      el('line', {x1:bx-3, x2:bx+barW+3, y1:y(0), y2:y(0), stroke:cssVar('--ink-2'), 'stroke-width':1.6}, g);
+    }
+
+    const labelText = b.type==='total' ? valueFmt(b.value) : (b.value>=0?'+':'')+valueFmt(b.value);
+    let ly = up ? yTop-8 : yTop+h+15;
+    if (ly > margin.top+innerH-4) ly = yTop-8;
+    el('text', {x:cx, y:ly, 'text-anchor':'middle', class:'val-label',
+                fill: b.type==='total'?cssVar('--ink'):solid}, g).textContent = labelText;
+
+    const hit = el('rect', {class:'hit', x:margin.left+i*bandW, y:margin.top, width:bandW, height:innerH, fill:'transparent'}, g);
+    hit.addEventListener('mousemove', ev=>{
+      const rows = b.type==='total'
+        ? `<div class="t-row"><span class="k">금액</span><span>${valueFmt(b.value)}${unit}</span></div>`
+        : `<div class="t-row"><span class="k">기여</span><span>${(b.value>=0?'+':'')+valueFmt(b.value)}${unit}</span></div><div class="t-row"><span class="k">누적</span><span>${valueFmt(b.to)}${unit}</span></div>`;
+      showTip(ev.clientX, ev.clientY, `<div class="t-title">${b.label}</div>${rows}`);
+    });
+    hit.addEventListener('mouseleave', hideTip);
+
+    const words = b.label.split(' ');
+    el('text', {class:'axis-label', x:cx, y:margin.top+innerH+19, 'text-anchor':'middle'}, g).textContent = words[0];
+    if (words.length>1){
+      el('text', {class:'axis-label', x:cx, y:margin.top+innerH+32, 'text-anchor':'middle'}, g).textContent = words.slice(1).join(' ');
+    }
+  });
+}
+
+/* ---------------- ⑤ 매출 믹스 흐름도 (계획 → 실적) ---------------- */
+function renderMixFlow(svg, segments, rowLabels){
+  rowLabels = rowLabels || ['계획','실적'];
+  svg.innerHTML = '';
+  const vb = svg.viewBox.baseVal, W = vb.width;
+  const margin = {top:34, right:58, bottom:12, left:52};
+  const innerW = W-margin.left-margin.right;
+  const topY = margin.top, barH = 34, botY = 178;
+  const g = el('g', {}, svg);
+
+  const totals = [0,1].map(r=>segments.reduce((a,s)=>a+Math.max(s.values[r],0),0) || 1);
+
+  [0,0.25,0.5,0.75,1].forEach(t=>{
+    const tx = margin.left + t*innerW;
+    el('line', {class:'grid-line', x1:tx, x2:tx, y1:topY-10, y2:botY+barH+4}, g);
+    el('text', {class:'axis-label', x:tx, y:topY-16,
+                'text-anchor': t===0?'start':(t===1?'end':'middle')}, g).textContent = fmtPct(t,0);
+  });
+
+  const edges = [[],[]];
+  [0,1].forEach(r=>{
+    let acc = 0;
+    segments.forEach(s=>{
+      const frac = Math.max(s.values[r],0)/totals[r];
+      edges[r].push([margin.left+acc*innerW, margin.left+(acc+frac)*innerW, frac]);
+      acc += frac;
+    });
+  });
+
+  // 흐름 리본
+  segments.forEach((s,si)=>{
+    const [t0,t1] = edges[0][si], [b0,b1] = edges[1][si];
+    const my = (topY+barH+botY)/2;
+    const d = `M${t0},${topY+barH} C${t0},${my} ${b0},${my} ${b0},${botY}`
+            + ` L${b1},${botY} C${b1},${my} ${t1},${my} ${t1},${topY+barH} Z`;
+    el('path', Object.assign({d, fill:s.color, opacity:0.13}, ANIM?{class:'fade'}:{}), g);
+  });
+
+  // 두 개의 100% 누적 막대
+  [0,1].forEach(r=>{
+    const rowY = r===0 ? topY : botY;
+    el('text', {x:margin.left-12, y:rowY+barH/2+5, 'text-anchor':'end',
+                style:'font-weight:700; font-size:12.5px;', fill:cssVar('--ink')}, g)
+      .textContent = rowLabels[r];
+    segments.forEach((s,si)=>{
+      const [x0,x1,frac] = edges[r][si];
+      const w = Math.max(x1-x0-2, 0);
+      el('rect', {x:x0, y:rowY, width:w, height:barH, rx:4, fill:cssVar('--surface')}, g);
+      el('rect', {x:x0, y:rowY, width:w, height:barH, rx:4, fill:s.color, opacity:0.4}, g);
+      if (frac > 0.07){
+        el('text', {x:x0+w/2, y:rowY+barH/2+4.5, 'text-anchor':'middle',
+                    style:'font-size:11.5px; font-weight:700;', fill:cssVar('--ink')}, g).textContent = fmtPct(frac,0);
+      }
+      const hit = el('rect', {class:'hit', x:x0, y:rowY, width:w, height:barH, fill:'transparent'}, g);
+      hit.addEventListener('mousemove', ev=>{
+        showTip(ev.clientX, ev.clientY,
+          `<div class="t-title">${rowLabels[r]} · ${s.name}</div>
+           <div class="t-row"><span class="k">금액</span><span>${fmt1(s.values[r])}억</span></div>
+           <div class="t-row"><span class="k">비중</span><span>${fmtPct(frac)}</span></div>
+           <div class="t-row"><span class="k">두 행의 차이</span><span>${fmtSigned((edges[1][si][2]-edges[0][si][2])*100)}%p</span></div>`);
+      });
+      hit.addEventListener('mouseleave', hideTip);
+    });
+    el('text', {class:'axis-label', x:margin.left+innerW+8, y:rowY+barH/2+4, 'text-anchor':'start'}, g)
+      .textContent = fmt1(totals[r])+'억';
+  });
+}
+
+/* ---------------- ⑦ 계획 vs 실적 페어 막대 (가로) ---------------- */
+function renderPairBar(svg, opts){
+  const {planVal, actualVal, fmt, diffFmt, favHigh=true} = opts;
+  svg.innerHTML = '';
+  const vb = svg.viewBox.baseVal, W = vb.width;
+  const margin = {left:44, right:78, top:16};
+  const innerW = W-margin.left-margin.right;
+  const defsId = addDefs(svg, {plan:cssVar('--plan'), actual:cssVar('--actual')});
+  const g = el('g', {}, svg);
+  const maxV = Math.max(Math.abs(planVal), Math.abs(actualVal)) * 1.02 || 1;
+  const barH = 26, gap = 12;
+
+  [['계획', planVal, 'plan'], ['실적', actualVal, 'actual']].forEach(([lab, v, key], i)=>{
+    const yy = margin.top + i*(barH+gap);
+    const w = Math.max(Math.abs(v)/maxV*innerW, 3);
+    el('text', {x:margin.left-10, y:yy+barH/2+4.5, 'text-anchor':'end',
+                style:'font-size:12px;font-weight:700;', fill:cssVar('--ink-2')}, g).textContent = lab;
+    el('rect', {x:margin.left, y:yy, width:innerW, height:barH, rx:7, fill:cssVar('--surface-2')}, g);
+    el('path', {d:hBarPath(margin.left, yy, w, barH, 7), fill:`url(#${defsId}-${key}-h)`}, g);
+    el('text', {x:margin.left+innerW+10, y:yy+barH/2+5, 'text-anchor':'start',
+                style:'font-size:13.5px;font-weight:800;', fill:cssVar('--ink')}, g).textContent = fmt(v);
+  });
+
+  // 차이 브래킷
+  const diff = actualVal - planVal;
+  const favorable = favHigh ? diff>=0 : diff<=0;
+  const col = favorable ? cssVar('--good') : cssVar('--critical');
+  const y0 = margin.top, y1 = margin.top + 2*barH + gap;
+  const wP = Math.max(Math.abs(planVal)/maxV*innerW, 3), wA = Math.max(Math.abs(actualVal)/maxV*innerW, 3);
+  const bx = Math.max(wP, wA) + margin.left;
+  el('path', {d:`M${margin.left+wP},${y0+barH/2} L${bx+14},${y0+barH/2} L${bx+14},${y1-barH/2} L${margin.left+wA},${y1-barH/2}`,
+              fill:'none', stroke:col, 'stroke-width':1.2, 'stroke-dasharray':'3,3', opacity:0.7}, g);
+  el('text', {x:bx+20, y:(y0+y1)/2+4, 'text-anchor':'start',
+              style:'font-size:12px;font-weight:800;', fill:col}, g).textContent = diffFmt(diff);
+  el('text', {class:'axis-label', x:margin.left, y:y1+18, 'text-anchor':'start'}, g)
+    .textContent = '계획 대비 ' + diffFmt(diff);
+}
+
+/* ---------------- ⑧ 손익분기 게이지 ---------------- */
+function renderBepGauge(svg, plan, actual){
+  svg.innerHTML = '';
+  const vb = svg.viewBox.baseVal, W = vb.width;
+  const margin = {left:52, right:22, top:34};
+  const innerW = W-margin.left-margin.right;
+  const defsId = addDefs(svg, {plan:cssVar('--plan'), actual:cssVar('--actual')});
+  const g = el('g', {}, svg);
+  const scaleMax = Math.max(plan.breakEven, actual.breakEven, plan.revenue, actual.revenue)*1.1;
+  const trackH = 30, rowGap = 34;
+
+  [['계획', plan, 'plan'], ['실적', actual, 'actual']].forEach(([lab, s, key], i)=>{
+    const yy = margin.top + i*(trackH+rowGap);
+    el('text', {x:margin.left-12, y:yy+trackH/2+5, 'text-anchor':'end',
+                style:'font-size:12.5px;font-weight:700;', fill:cssVar('--ink')}, g).textContent = lab;
+    el('rect', {x:margin.left, y:yy, width:innerW, height:trackH, rx:8, fill:cssVar('--surface-2')}, g);
+
+    const bw = s.revenue/scaleMax*innerW;
+    const bex = margin.left + s.breakEven/scaleMax*innerW;
+    // 적자 구간 음영 (0 → 손익분기)
+    el('rect', {x:margin.left, y:yy, width:bex-margin.left, height:trackH, rx:8,
+                fill:cssVar('--critical'), opacity:0.07}, g);
+    el('path', Object.assign({d:hBarPath(margin.left, yy+5, Math.max(bw,4), trackH-10, 6),
+                              fill:`url(#${defsId}-${key}-h)`}, ANIM?{class:'fade'}:{}), g);
+    el('text', {x:margin.left+10, y:yy+trackH/2+4.5, style:'font-size:11.5px;font-weight:700;', fill:'#fff'}, g)
+      .textContent = '매출 '+fmt1(s.revenue)+'억';
+
+    // 손익분기 마커 (깃발)
+    el('line', {x1:bex, x2:bex, y1:yy-9, y2:yy+trackH+7, stroke:cssVar('--ink'), 'stroke-width':2, opacity:0.8}, g);
+    el('path', {d:`M${bex},${yy-9} l0,-2 l7,4.5 l-7,4.5 z`, fill:cssVar('--ink'), opacity:0.8}, g);
+    el('text', {x:bex+2, y:yy+trackH+20, 'text-anchor':'middle',
+                style:'font-size:11px;font-weight:700;', fill:cssVar('--ink-2')}, g)
+      .textContent = '적자 탈출선 '+fmt1(s.breakEven)+'억';
+
+    const pct = s.revenue/s.breakEven;
+    el('text', {x:margin.left+innerW, y:yy-10, 'text-anchor':'end',
+                style:'font-size:11.5px;font-weight:700;', fill: pct>=1?cssVar('--good'):cssVar('--critical')}, g)
+      .textContent = '탈출선의 '+fmtPct(pct,0);
+  });
+}
+
+/* ---------------- ⑨ 계획 vs 실적 선 비교 ---------------- */
+function renderLineCompare(svg, opts){
+  const {labels, plan, actual, estFlags=null, valueFmt=fmt1, unit='', diffUnit=null} = opts;
+  svg.innerHTML = '';
+  const vb = svg.viewBox.baseVal, W = vb.width, H = vb.height;
+  const margin = {top:34, right:16, bottom:32, left:48};
+  const innerW = W-margin.left-margin.right, innerH = H-margin.top-margin.bottom;
+  const defsId = addDefs(svg, {actual:cssVar('--actual')});
+  const g = el('g', {}, svg);
+
+  const all = plan.concat(actual);
+  const ticks = niceTicks(Math.min(0, ...all), Math.max(...all), 5);
+  const vmin = ticks[0], vmax = ticks[ticks.length-1];
+  const y = v => margin.top + innerH - ((v-vmin)/(vmax-vmin))*innerH;
+  const n = labels.length, bandW = innerW/n, x = i => margin.left + bandW*(i+0.5);
+
+  drawFrame(g, {ticks, y, margin, innerW, innerH, valueFmt, estFlags, bandW, defsId});
+
+  const path = arr => arr.map((v,i)=>(i?'L':'M')+x(i).toFixed(1)+' '+y(v).toFixed(1)).join(' ');
+  el('path', {d:path(plan), fill:'none', stroke:cssVar('--plan'), 'stroke-width':2,
+              'stroke-dasharray':'6,4', 'stroke-linecap':'round', 'stroke-linejoin':'round'}, g);
+  el('path', {d:path(actual), fill:'none', stroke:cssVar('--actual'), 'stroke-width':2.6,
+              'stroke-linecap':'round', 'stroke-linejoin':'round'}, g);
+  actual.forEach((v,i)=>{
+    el('circle', {cx:x(i), cy:y(v), r:3.4, fill:cssVar('--actual'),
+                  stroke:cssVar('--surface'), 'stroke-width':1.8}, g);
+  });
+  if (vmin<0 && vmax>0) el('line', {class:'zero-line', x1:margin.left, x2:margin.left+innerW, y1:y(0), y2:y(0)}, g);
+
+  labels.forEach((lab,i)=>{
+    el('text', {class:'axis-label', x:x(i), y:margin.top+innerH+19, 'text-anchor':'middle'}, g).textContent = lab;
+    const hit = el('rect', {class:'hit', x:margin.left+i*bandW, y:margin.top, width:bandW, height:innerH, fill:'transparent'}, g);
+    hit.addEventListener('mousemove', ev=>{
+      showTip(ev.clientX, ev.clientY,
+        `<div class="t-title">${lab}${estFlags&&estFlags[i]?' (추정)':''}</div>
+         <div class="t-row"><span class="k">계획</span><span>${valueFmt(plan[i])}${unit}</span></div>
+         <div class="t-row"><span class="k">실적</span><span>${valueFmt(actual[i])}${unit}</span></div>
+         <div class="t-row"><span class="k">차이</span><span>${fmtSigned(actual[i]-plan[i])}${diffUnit||unit}</span></div>`);
+    });
+    hit.addEventListener('mouseleave', hideTip);
+  });
+}
+
+/* ---------------- KPI 카드 (불릿 + 스파크라인) ---------------- */
+function bulletSvg(planVal, actualVal, favHigh){
+  const W=268, H=30;
+  const maxV = Math.max(Math.abs(planVal), Math.abs(actualVal))*1.14 || 1;
+  const px = Math.abs(planVal)/maxV*W, ax = Math.abs(actualVal)/maxV*W;
+  const ok = favHigh ? actualVal>=planVal : actualVal<=planVal;
+  const col = ok ? 'var(--good)' : 'var(--critical)';
+  const tick = Math.max(1.5, Math.min(px, W-1.5));
+  return `<svg class="kpi-bullet" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true">
+    <rect x="0" y="9" width="${W}" height="12" rx="6" fill="var(--surface-2)"></rect>
+    <rect x="0" y="9" width="${px.toFixed(1)}" height="12" rx="6" fill="var(--plan)" opacity="0.22"></rect>
+    <rect x="0" y="11.5" width="${Math.max(ax,3).toFixed(1)}" height="7" rx="3.5" fill="${col}"></rect>
+    <rect x="${(tick-1.4).toFixed(1)}" y="3" width="2.8" height="24" rx="1.4" fill="var(--plan)"></rect>
+  </svg>`;
+}
+function sparkSvg(vals){
+  const W=268, H=36, pad=4;
+  const lo = Math.min(0, ...vals), hi = Math.max(0, ...vals), span = (hi-lo)||1;
+  const x = i => pad + (W-2*pad)*i/(vals.length-1);
+  const y = v => pad + (H-2*pad)*(1-(v-lo)/span);
+  const id = 'sp'+(++UID);
+  const line = i0 => vals.slice(i0[0], i0[1]).map((v,k)=>((k?'L':'M')+x(i0[0]+k).toFixed(1)+' '+y(v).toFixed(1))).join(' ');
+  const full = vals.map((v,i)=>((i?'L':'M')+x(i).toFixed(1)+' '+y(v).toFixed(1))).join(' ');
+  const area = full + ` L${x(vals.length-1).toFixed(1)} ${y(lo).toFixed(1)} L${x(0).toFixed(1)} ${y(lo).toFixed(1)} Z`;
+  const zero = lo<0 ? `<line x1="${pad}" y1="${y(0).toFixed(1)}" x2="${W-pad}" y2="${y(0).toFixed(1)}" stroke="var(--baseline)" stroke-width="1"></line>` : '';
+  return `<svg class="kpi-spark" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true">
+    <defs><linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="var(--actual)" stop-opacity="0.30"></stop>
+      <stop offset="100%" stop-color="var(--actual)" stop-opacity="0.02"></stop>
+    </linearGradient></defs>
+    ${zero}
+    <path d="${area}" fill="url(#${id})"></path>
+    <path d="${line([0, elapsedMonths])}" fill="none" stroke="var(--actual)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"></path>
+    <path d="${line([elapsedMonths-1, vals.length])}" fill="none" stroke="var(--actual)" stroke-width="2" stroke-dasharray="4,3" opacity="0.65" stroke-linecap="round"></path>
+    <circle cx="${x(elapsedMonths-1).toFixed(1)}" cy="${y(vals[elapsedMonths-1]).toFixed(1)}" r="3.4" fill="var(--actual)" stroke="var(--surface)" stroke-width="1.6"></circle>
+  </svg>`;
+}
+function pillDisplay(planVal, actualVal, favHigh, goodLabel){
+  const favorable = favHigh ? actualVal>=planVal : actualVal<=planVal;
+  const cls = favorable ? 'good' : 'bad';
+  if (favorable){
+    const achv = planVal!==0 ? actualVal/planVal : null;
+    return {cls, text: `${goodLabel} ${achv!==null?fmtPct(achv):'-'}`};
+  }
+  const gap = actualVal - planVal;
+  return {cls, text: `${fmt1(Math.abs(gap))}억 ${favHigh?'부족':'초과'}`};
+}
+function gapDisplay(planVal, actualVal, favHigh){
+  const gap = actualVal - planVal;
+  const favorable = favHigh ? gap>=0 : gap<=0;
+  const gapPct = planVal!==0 ? gap/Math.abs(planVal) : null;
+  return {cls: favorable?'pos':'neg',
+          text: (favorable && gapPct!==null) ? `${fmtSigned(gap)}억 (${fmtPctSigned(gapPct)})` : `${fmtSigned(gap)}억`};
+}
+function kpiCardHtml(cfg, planVal, actualVal, spark, footHtml, subPrefix){
+  let pillHtml, favHigh, gapCls, gapText;
+  if (cfg.mode === 'loss'){
+    favHigh = true;
+    const gap = actualVal - planVal;
+    pillHtml = `<span class="kpi-pill kpi-pill--${gap>=0?'good':'bad'}">${gap>=0?'개선 ':'악화 '}${fmt1(Math.abs(gap))}억</span>`;
+    gapCls = gap>=0 ? 'pos':'neg'; gapText = `${fmtSigned(gap)}억`;
+  } else {
+    favHigh = cfg.mode !== 'cost';
+    const pill = pillDisplay(planVal, actualVal, favHigh, cfg.mode==='cost'?'집행률':(cfg.paceLabel||'달성률'));
+    pillHtml = `<span class="kpi-pill kpi-pill--${pill.cls}">${pill.text}</span>`;
+    const gd = gapDisplay(planVal, actualVal, favHigh);
+    gapCls = gd.cls; gapText = gd.text;
+  }
+  const bulletFav = cfg.mode === 'cost' ? false : true;
+  const card = document.createElement('div');
+  card.className = 'kpi-card';
+  card.innerHTML = `
+    <div class="kpi-top"><span class="kpi-title">${cfg.label}</span>${pillHtml}</div>
+    <div class="kpi-value tabular">${fmt1(actualVal)}<span class="unit">억</span></div>
+    <div class="kpi-sub">${subPrefix} ${fmt1(planVal)}억 대비 <b class="${gapCls}">${gapText}</b></div>
+    ${bulletSvg(planVal, actualVal, bulletFav)}
+    <div class="kpi-scale"><span>0</span><span>${cfg.mode==='loss'?'손실 규모 · 짧을수록 좋음':'막대 = 실적 · 눈금 = 계획'}</span></div>
+    ${spark ? sparkSvg(spark) : ''}
+    ${footHtml ? `<div class="kpi-foot">${footHtml}</div>` : ''}
+  `;
+  return card;
+}
+function renderKpis(){
+  const grid = document.getElementById('kpiGrid');
+  grid.innerHTML = '';
+  [{key:'revenue_total', label:'매출', mode:'revenue', paceLabel:'진도율'},
+   {key:'profit_total', label:'손익', mode:'loss'},
+   {key:'profit_after_direct_cost', label:'매출직접비 차감손익', mode:'revenue', paceLabel:'진도율'},
+   {key:'cost_total', label:'비용', mode:'cost'}].forEach(cfg=>{
+    const d = PL.data[cfg.key];
+    const ytdPlan = ytd(d.plan_monthly), ytdActual = ytd(d.actual_monthly);
+    const foot = cfg.mode==='loss'
+      ? `1~${elapsedMonths}월 누적실적 ${fmt1(ytdActual)}억 (누적계획 ${fmt1(ytdPlan)}억)`
+      : `1~${elapsedMonths}월 누적실적 ${fmt1(ytdActual)}억 · 연간계획 대비 ${fmtPct(ytdActual/d.plan_annual)}`;
+    grid.appendChild(kpiCardHtml(cfg, d.plan_annual, d.actual_annual, d.actual_monthly, foot, '연간계획'));
+  });
+}
+
+/* ---------------- gap 분석 패널 ---------------- */
+const GAP_METRICS = [
+  {key:'revenue_total', label:'매출'},
+  {key:'profit_total', label:'손익'},
+  {key:'profit_after_direct_cost', label:'매출직접비 차감손익'},
+];
+let currentPeriod = 'month';
+
+function buildGapPanels(){
+  const wrap = document.getElementById('gapCharts');
+  wrap.innerHTML = '';
+  GAP_METRICS.forEach(m=>{
+    const block = document.createElement('div');
+    block.innerHTML = `
+      <div style="display:flex;align-items:baseline;justify-content:space-between;gap:8px;flex-wrap:wrap;">
+        <div style="font-size:13px;font-weight:700;color:var(--ink);">${m.label}</div>
+        <div style="font-size:11px;color:var(--muted);" class="tabular" id="gapHint-${m.key}"></div>
+      </div>
+      <svg class="chart" id="gapChart-${m.key}" viewBox="0 0 960 260" style="margin-top:2px;" role="img" aria-label="${m.label} 계획 대비 실적"></svg>
+    `;
+    wrap.appendChild(block);
+  });
+}
+function renderGapCharts(){
+  GAP_METRICS.forEach(m=>{
+    const d = PL.data[m.key];
+    const svg = document.getElementById('gapChart-'+m.key);
+    if (currentPeriod === 'month'){
+      renderTargetBar(svg, {labels:MONTHS, plan:d.plan_monthly, actual:d.actual_monthly,
+                            estFlags:PL.confirmed_monthly.map(c=>c==='추정')});
+    } else if (currentPeriod === 'quarter'){
+      renderTargetBar(svg, {labels:QUARTERS, plan:d.plan_quarterly, actual:d.actual_quarterly,
+                            estFlags:PL.confirmed_quarterly.map(c=>c==='추정')});
+    } else {
+      renderCumulative(svg, {labels:MONTHS, plan:d.plan_monthly, actual:d.actual_monthly,
+                             estFlags:PL.confirmed_monthly.map(c=>c==='추정')});
+    }
+    const planA = d.plan_annual, actA = d.actual_annual, gap = actA-planA;
+    document.getElementById('gapHint-'+m.key).textContent =
+      `연간계획 ${fmt1(planA)}억 · 연간실적 ${fmt1(actA)}억 · GAP ${fmtSigned(gap)}억 (${fmtPctSigned(planA!==0?gap/Math.abs(planA):0)})`;
+  });
+}
+function buildTabs(){
+  const pWrap = document.getElementById('periodTabs');
+  pWrap.innerHTML = '';
+  [['month','월별'],['quarter','분기별'],['cum','누적']].forEach(([key,label])=>{
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'tab-btn' + (key===currentPeriod?' active':'');
+    b.textContent = label;
+    b.addEventListener('click', ()=>{
+      currentPeriod = key;
+      [...pWrap.children].forEach(c=>c.classList.remove('active'));
+      b.classList.add('active');
+      renderGapCharts();
+    });
+    pWrap.appendChild(b);
+  });
+}
+
+/* ---------------- 월별 매출 증감 ---------------- */
+function renderMomChart(){
+  const monthly = PL.data.revenue_total.actual_monthly;
+  const values = monthly.map((v,i)=> i===0? null : v-monthly[i-1]);
+  const pctValues = monthly.map((v,i)=> i===0? null : (monthly[i-1]!==0 ? (v-monthly[i-1])/Math.abs(monthly[i-1]) : null));
+  renderDivergingBar(document.getElementById('momChart'),
+    {labels:MONTHS, values, pctValues, estFlags:PL.confirmed_monthly.map(c=>c==='추정')});
+}
+
+/* ---------------- 차감손익 분석 ---------------- */
+function renderDcpCharts(){
+  const d = PL.data.profit_after_direct_cost;
+  renderPairBar(document.getElementById('dcpAmountChart'), {
+    planVal:d.plan_annual, actualVal:d.actual_annual,
+    fmt:v=>fmt1(v)+'억', diffFmt:v=>fmtSigned(v)+'억', favHigh:true});
+  const m = PL.data.margin_after_direct_cost;
+  renderPairBar(document.getElementById('dcpMarginChart'), {
+    planVal:m.plan_annual*100, actualVal:m.actual_annual*100,
+    fmt:v=>fmt1(v)+'%', diffFmt:v=>fmtSigned(v)+'%p', favHigh:true});
+}
+const MIX_SEGMENTS = [
+  {label:'콘텐츠판매&광고', color:'--mix-1'},
+  {label:'이벤트', color:'--mix-2'},
+  {label:'협찬', color:'--mix-3'},
+  {label:'캠페인', color:'--mix-4'},
+];
+function renderMixLegend(){
+  document.getElementById('mixLegend').innerHTML = MIX_SEGMENTS.map(s=>
+    `<span class="legend-item"><span class="legend-swatch" style="background:${cssVar(s.color)};opacity:.4"></span>${s.label}</span>`).join('');
+}
+function mixSeries(){
+  return [
+    {name:'콘텐츠판매&광고', color:cssVar('--mix-1'),
+     values:[PL.data.content_sales.plan_annual+PL.data.ads.plan_annual,
+             PL.data.content_sales.actual_annual+PL.data.ads.actual_annual]},
+    {name:'이벤트', color:cssVar('--mix-2'), values:[PL.data.event_rev.plan_annual, PL.data.event_rev.actual_annual]},
+    {name:'협찬', color:cssVar('--mix-3'), values:[PL.data.sponsor_rev.plan_annual, PL.data.sponsor_rev.actual_annual]},
+    {name:'캠페인', color:cssVar('--mix-4'), values:[PL.data.campaign_rev.plan_annual, PL.data.campaign_rev.actual_annual]},
+  ];
+}
+function renderMixChart(){
+  const series = mixSeries();
+  renderMixFlow(document.getElementById('mixChart'), series);
+  const totals = [0,1].map(r=>series.reduce((a,s)=>a+Math.max(s.values[r],0),0)||1);
+  const shift = series.map(s=>({name:s.name, color:s.color,
+    d:(s.values[1]/totals[1]-s.values[0]/totals[0])*100}));
+  const up = shift.reduce((a,b)=>b.d>a.d?b:a), down = shift.reduce((a,b)=>b.d<a.d?b:a);
+  document.getElementById('mixCaptions').innerHTML =
+    `<div class="explain" style="margin-top:12px;">
+      계획에서 실적으로 넘어오며 <b>${up.name}</b> 비중이 <span class="pos">${fmtSigned(up.d)}%p</span> 늘고,
+      <b>${down.name}</b> 비중이 <span class="neg">${fmtSigned(down.d)}%p</span> 줄었습니다.
+     </div>`;
+}
+function renderSegSection(){
+  const rows = ['event_margin','sponsor_margin','campaign_margin'].map(k=>({
+    label:SEG[k].label, plan:SEG[k].plan_annual*100, actual:SEG[k].actual_annual*100}));
+  document.getElementById('segTable').innerHTML = `
+    <thead><tr><th>사업 유형</th><th>연간계획률</th><th>연간실적률</th><th>GAP(%p)</th></tr></thead>
+    <tbody>${rows.map(r=>{
+      const diff = r.actual-r.plan;
+      return `<tr><td>${r.label}</td><td>${fmt1(r.plan)}%</td><td>${fmt1(r.actual)}%</td><td class="diff ${diff>=0?'pos':'neg'}">${fmtSigned(diff)}%p</td></tr>`;
+    }).join('')}</tbody>`;
+}
+
+/* ---------------- 상세 테이블 ---------------- */
+const DETAIL_ROWS = [
+  {key:'revenue_total', cls:'total', favHigh:true},
+  {key:'content_sales', cls:'sub', favHigh:true},
+  {key:'ads', cls:'sub', favHigh:true},
+  {key:'content_biz', cls:'sub', favHigh:true, group:'content_biz'},
+  {key:'event_rev', cls:'sub2', favHigh:true, parent:'content_biz'},
+  {key:'sponsor_rev', cls:'sub2', favHigh:true, parent:'content_biz'},
+  {key:'campaign_rev', cls:'sub2', favHigh:true, parent:'content_biz'},
+  {key:'cost_total', cls:'total', favHigh:false},
+  {key:'direct_cost_total', cls:'sub', favHigh:false, group:'direct_cost_total'},
+  {key:'event_dc', cls:'sub2', favHigh:false, parent:'direct_cost_total'},
+  {key:'sponsor_dc', cls:'sub2', favHigh:false, parent:'direct_cost_total'},
+  {key:'campaign_dc', cls:'sub2', favHigh:false, parent:'direct_cost_total'},
+  {key:'program_cost', cls:'sub', favHigh:false, group:'program_cost'},
+  {key:'production_cost', cls:'sub2', favHigh:false, parent:'program_cost'},
+  {key:'labor_cost', cls:'sub2', favHigh:false, parent:'program_cost'},
+  {key:'indirect_cost', cls:'sub', favHigh:false, group:'indirect_cost'},
+  {key:'broadcast_facility', cls:'sub2', favHigh:false, parent:'indirect_cost'},
+  {key:'building_cost', cls:'sub2', favHigh:false, parent:'indirect_cost'},
+  {key:'association_fee', cls:'sub2', favHigh:false, parent:'indirect_cost'},
+  {key:'fees_paid', cls:'sub2', favHigh:false, parent:'indirect_cost'},
+  {key:'other_cost', cls:'sub2', favHigh:false, parent:'indirect_cost'},
+  {key:'company_mgmt_cost', cls:'sub', favHigh:false},
+  {key:'profit_total', cls:'total', favHigh:true},
+  {key:'profit_after_direct_cost', cls:'total', favHigh:true},
+  {key:'margin_after_direct_cost', cls:'rate', favHigh:true, isPct:true},
+];
+function wireToggles(table){
+  table.querySelectorAll('.row-toggle').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const group = btn.dataset.group;
+      const expanded = btn.getAttribute('aria-expanded') === 'true';
+      btn.setAttribute('aria-expanded', expanded ? 'false' : 'true');
+      btn.classList.toggle('collapsed', expanded);
+      table.querySelectorAll(`tr[data-parent="${group}"]`).forEach(r=>{ r.hidden = expanded; });
+    });
+  });
+}
+function renderDetailTable(){
+  const table = document.getElementById('detailTable');
+  const estMonthly = PL.confirmed_monthly.map(c=>c==='추정');
+  const headRow1 = `<tr><th rowspan="2">구분</th>${MONTHS.map(m=>`<th colspan="2" class="grp-start">${m}</th>`).join('')}<th colspan="2" class="grp-start">연간</th><th rowspan="2" class="grp-start">연간 GAP<br>(실적-계획)</th></tr>`;
+  const headRow2 = `<tr>${MONTHS.map((m,i)=>`<th class="grp-start col-plan">계획</th><th class="col-actual${estMonthly[i]?' est':''}">실적${estMonthly[i]?'*':''}</th>`).join('')}<th class="grp-start col-plan">계획</th><th class="col-actual">실적</th></tr>`;
+  const bodyRows = DETAIL_ROWS.map(cfg=>{
+    const d = PL.data[cfg.key];
+    const gap = d.actual_annual - d.plan_annual;
+    const gapCls = (cfg.favHigh ? gap>=0 : gap<=0) ? 'pos' : 'neg';
+    const f = cfg.isPct ? (v)=>fmtPct(v) : (v)=>fmt1(v);
+    const fg = cfg.isPct ? (v)=>fmtPctSigned(v) : (v)=>fmtSigned(v);
+    const monthCells = d.plan_monthly.map((pv,i)=>
+      `<td class="grp-start col-plan">${f(pv)}</td><td class="col-actual${estMonthly[i]?' est':''}">${f(d.actual_monthly[i])}</td>`).join('');
+    const labelCell = cfg.group
+      ? `<td><button type="button" class="row-toggle" data-group="${cfg.group}" aria-expanded="true">${d.label}<span class="chev">▾</span></button></td>`
+      : `<td>${d.label}</td>`;
+    return `<tr class="${cfg.cls}"${cfg.parent?` data-parent="${cfg.parent}"`:''}>${labelCell}${monthCells}<td class="grp-start col-plan">${f(d.plan_annual)}</td><td class="col-actual">${f(d.actual_annual)}</td><td class="diff ${gapCls} grp-start">${fg(gap)}</td></tr>`;
+  }).join('');
+  table.innerHTML = `<thead>${headRow1}${headRow2}</thead><tbody>${bodyRows}</tbody>`;
+  wireToggles(table);
+}
+
+/* ---------------- 당월 리포트 ---------------- */
+let monthIdx = elapsedMonths - 1;
+let monthLabel = MONTHS[monthIdx];
+const isEstimatedMonth = () => PL.confirmed_monthly[monthIdx] === '추정';
+
+function renderMonthKpis(){
+  document.getElementById('monthAnalysisTitle').textContent = `${monthLabel} 계획 대비 실적 분석`;
+  document.getElementById('monthAnalysisHint').textContent = isEstimatedMonth()
+    ? `2026년 ${monthLabel}은 아직 확정 전으로, 추정치를 계획과 비교합니다`
+    : `2026년 ${monthLabel} 확정 실적을 계획과 비교합니다`;
+  const grid = document.getElementById('monthKpiGrid');
+  grid.innerHTML = '';
+  [{key:'revenue_total', label:'매출', mode:'revenue'},
+   {key:'profit_total', label:'손익', mode:'loss'},
+   {key:'profit_after_direct_cost', label:'매출직접비 차감손익', mode:'revenue'},
+   {key:'cost_total', label:'비용', mode:'cost'}].forEach(cfg=>{
+    const d = PL.data[cfg.key];
+    grid.appendChild(kpiCardHtml(cfg, d.plan_monthly[monthIdx], d.actual_monthly[monthIdx], null, '', `${monthLabel} 계획`));
+  });
+}
+const CONTRIB_KEYS = [
+  {key:'event_rev', label:'이벤트'}, {key:'sponsor_rev', label:'협찬'}, {key:'campaign_rev', label:'캠페인'},
+  {key:'content_sales', label:'콘텐츠판매'}, {key:'ads', label:'광고'},
+];
+function renderMonthDetailTable(){
+  const table = document.getElementById('monthDetailTable');
+  const bodyRows = DETAIL_ROWS.map(cfg=>{
+    const d = PL.data[cfg.key];
+    const planVal = d.plan_monthly[monthIdx], actualVal = d.actual_monthly[monthIdx];
+    const gap = actualVal - planVal;
+    const gapCls = (cfg.favHigh ? gap>=0 : gap<=0) ? 'pos' : 'neg';
+    const f = cfg.isPct ? (v)=>fmtPct(v) : (v)=>fmt1(v);
+    const fg = cfg.isPct ? (v)=>fmtPctSigned(v) : (v)=>fmtSigned(v);
+    const gapPctVal = (!cfg.isPct && planVal!==0) ? gap/Math.abs(planVal) : null;
+    const labelCell = cfg.group
+      ? `<td><button type="button" class="row-toggle" data-group="${cfg.group}" aria-expanded="true">${d.label}<span class="chev">▾</span></button></td>`
+      : `<td>${d.label}</td>`;
+    return `<tr class="${cfg.cls}"${cfg.parent?` data-parent="${cfg.parent}"`:''}>${labelCell}<td class="col-plan">${f(planVal)}</td><td class="col-actual">${f(actualVal)}</td><td class="diff ${gapCls} grp-start">${fg(gap)}${gapPctVal!==null?` (${fmtPctSigned(gapPctVal)})`:''}</td></tr>`;
+  }).join('');
+  table.innerHTML = `<thead><tr><th>구분</th><th class="col-plan">계획</th><th class="col-actual">실적</th><th class="grp-start">GAP</th></tr></thead><tbody>${bodyRows}</tbody>`;
+  wireToggles(table);
+  document.getElementById('monthDetailHint').textContent = `${monthLabel} 계획 vs 실적 · GAP = 실적-계획`;
+}
+function generateMonthInsights(){
+  const rev = PL.data.revenue_total, cost = PL.data.cost_total, profit = PL.data.profit_total, margin = PL.data.margin_after_direct_cost;
+  const insights = [];
+  {
+    const planVal = rev.plan_monthly[monthIdx], actualVal = rev.actual_monthly[monthIdx];
+    const achv = actualVal/planVal, gap = actualVal-planVal;
+    if (gap >= 0) insights.push({tone:'good', html:`${monthLabel} 매출은 계획 <b>${fmt1(planVal)}억</b> 대비 실적 <b>${fmt1(actualVal)}억</b>으로 <b>${fmtPct(achv)}</b> 달성했습니다.`});
+    else insights.push({tone: achv>=0.7?'warning':'critical', html:`${monthLabel} 매출은 계획 <b>${fmt1(planVal)}억</b> 대비 실적 <b>${fmt1(actualVal)}억</b>으로 <b>${fmt1(Math.abs(gap))}억 미달</b>했습니다.`});
+  }
+  {
+    const planVal = profit.plan_monthly[monthIdx], actualVal = profit.actual_monthly[monthIdx], gap = actualVal-planVal;
+    insights.push({tone: gap>=0?'good':'warning', html:`${monthLabel} 손익은 <b>${fmt1(actualVal)}억</b>으로 계획(${fmt1(planVal)}억) 대비 <b>${fmtSigned(gap)}억</b> ${gap>=0?'개선':'악화'}되었습니다.`});
+  }
+  {
+    const planVal = cost.plan_monthly[monthIdx], actualVal = cost.actual_monthly[monthIdx];
+    const achv = actualVal/planVal, over = actualVal-planVal;
+    if (over <= 0) insights.push({tone:'good', html:`${monthLabel} 비용은 계획 <b>${fmt1(planVal)}억</b> 대비 실적 <b>${fmt1(actualVal)}억</b>으로 집행률 <b>${fmtPct(achv)}</b>, 계획 이내로 집행되었습니다.`});
+    else insights.push({tone: achv<=1.2?'warning':'critical', html:`${monthLabel} 비용은 계획 <b>${fmt1(planVal)}억</b> 대비 실적 <b>${fmt1(actualVal)}억</b>으로 <b>${fmt1(over)}억 초과</b> 집행되었습니다.`});
+  }
+  {
+    const planVal = margin.plan_monthly[monthIdx], actualVal = margin.actual_monthly[monthIdx];
+    const gapPp = (actualVal-planVal)*100;
+    if (Math.abs(gapPp) >= 3) insights.push({tone: gapPp>=0?'good':'warning', html:`${monthLabel} 매출직접비 차감손익률은 계획 <b>${fmtPct(planVal)}</b> 대비 실적 <b>${fmtPct(actualVal)}</b>로 <b>${fmtSigned(gapPp)}%p</b> ${gapPp>=0?'높습니다':'낮습니다'}.`});
+    else insights.push({tone:'neutral', html:`${monthLabel} 매출직접비 차감손익률은 계획 ${fmtPct(planVal)} 대비 실적 ${fmtPct(actualVal)}로 계획과 비슷한 수준입니다.`});
+  }
+  if (monthIdx >= 1){
+    const prev = rev.actual_monthly[monthIdx-1], cur = rev.actual_monthly[monthIdx];
+    const diff = cur-prev, pct = prev!==0 ? diff/Math.abs(prev) : null;
+    insights.push({tone: diff>=0?'good':'warning', html:`전월(${MONTHS[monthIdx-1]}) 매출 ${fmt1(prev)}억 대비 ${monthLabel} 매출은 <b>${fmtSigned(diff)}억</b>${pct!==null?`(${fmtPctSigned(pct)})`:''} ${diff>=0?'증가':'감소'}했습니다.`});
+  }
+  {
+    const gaps = CONTRIB_KEYS.map(s=>{
+      const d = PL.data[s.key];
+      return {label:s.label, gap:d.actual_monthly[monthIdx]-d.plan_monthly[monthIdx]};
+    });
+    const top = gaps.reduce((a,b)=> Math.abs(b.gap)>Math.abs(a.gap) ? b : a);
+    if (Math.abs(top.gap) >= 0.3) insights.push({tone: top.gap>=0?'good':'warning', html:`${monthLabel} 매출 GAP에 가장 크게 기여한 항목은 <b>${top.label}</b>(계획 대비 <b>${fmtSigned(top.gap)}억</b>)입니다.`});
+  }
+  return insights;
+}
+function renderMonthInsights(){
+  document.getElementById('monthInsightList').innerHTML =
+    generateMonthInsights().map(i=>`<div class="insight-card ${i.tone}"><span class="tag"></span><p>${i.html}</p></div>`).join('');
+  document.getElementById('monthInsightAsOf').textContent = `${monthLabel} ${isEstimatedMonth()?'추정':'확정'} 기준 · 계획 대비 실적 인사이트`;
+}
+function fillMonthSelect(){
+  const sel = document.getElementById('monthSelect');
+  sel.innerHTML = MONTHS.map((m,i)=>`<option value="${i}"${i===monthIdx?' selected':''}>${m}${PL.confirmed_monthly[i]==='추정'?' (추정)':''}</option>`).join('');
+}
+function initMonthSelect(){
+  const sel = document.getElementById('monthSelect');
+  fillMonthSelect();
+  sel.addEventListener('change', ()=>{
+    monthIdx = Number(sel.value); monthLabel = MONTHS[monthIdx];
+    renderMonthKpis(); renderMonthDetailTable(); renderMonthInsights();
+  });
+}
+
+/* ---------------- 차감손익 심층분석 ---------------- */
+const CM_SEGS = [
+  {label:'이벤트', rev:'event_rev', dc:'event_dc', color:'--mix-2'},
+  {label:'협찬', rev:'sponsor_rev', dc:'sponsor_dc', color:'--mix-3'},
+  {label:'캠페인', rev:'campaign_rev', dc:'campaign_dc', color:'--mix-4'},
+  {label:'콘텐츠판매·광고', rev:null, dc:null, color:'--mix-1'},
+];
+function cmSegData(which){
+  const g = k => which==='plan' ? PL.data[k].plan_annual : PL.data[k].actual_annual;
+  return CM_SEGS.map(s=>{
+    const rev = s.rev ? g(s.rev) : g('content_sales')+g('ads');
+    const dc  = s.dc  ? g(s.dc)  : 0;
+    return {label:s.label, color:cssVar(s.color), rev, dc, cm:rev-dc, margin: rev!==0 ? (rev-dc)/rev : 0};
+  });
+}
+/* 계획 대비 차감손익 증감 = 물량효과 + 믹스효과 + 마진율효과 (사업별로도 정확히 일치) */
+function cmFactors(){
+  const p = cmSegData('plan'), a = cmSegData('actual');
+  const Rp = p.reduce((s,x)=>s+x.rev,0), Ra = a.reduce((s,x)=>s+x.rev,0);
+  const CMp = p.reduce((s,x)=>s+x.cm,0), CMa = a.reduce((s,x)=>s+x.cm,0);
+  const mbar = CMp/Rp;
+  const perSeg = a.map((x,i)=>{
+    const wp = p[i].rev/Rp;
+    return {label:x.label, color:x.color,
+            volume:(Ra-Rp)*wp*p[i].margin,
+            mix:(x.rev - Ra*wp)*p[i].margin,
+            rate:x.rev*(x.margin - p[i].margin),
+            gap:x.cm-p[i].cm, wp, wa:x.rev/Ra, mp:p[i].margin, ma:x.margin,
+            cmp:p[i].cm, cma:x.cm, revp:p[i].rev, reva:x.rev, dcp:p[i].dc, dca:x.dc};
+  });
+  return {p, a, Rp, Ra, CMp, CMa, mbar,
+          volume:perSeg.reduce((s,x)=>s+x.volume,0),
+          mix:perSeg.reduce((s,x)=>s+x.mix,0),
+          rate:perSeg.reduce((s,x)=>s+x.rate,0), perSeg};
+}
+function fixedCostOf(which){
+  const g = k => which==='plan' ? PL.data[k].plan_annual : PL.data[k].actual_annual;
+  return g('cost_total') - g('direct_cost_total');
+}
+function structureOf(which){
+  const g = k => which==='plan' ? PL.data[k].plan_annual : PL.data[k].actual_annual;
+  const revenue = g('revenue_total'), directCost = g('direct_cost_total');
+  const baseCost = g('cost_total') - directCost, left = revenue - directCost;
+  const marginRate = revenue!==0 ? left/revenue : 0;
+  return {revenue, directCost, baseCost, left, marginRate, per100:marginRate*100,
+          profit:left-baseCost, coverage: baseCost!==0 ? left/baseCost : 0,
+          breakEven: marginRate>0 ? baseCost/marginRate : null};
+}
+
+function statCard(label, value, delta, deltaCls, foot){
+  return `<div class="stat-card">
+    <span class="stat-label">${label}</span>
+    <span class="stat-value">${value}</span>
+    <span class="stat-delta ${deltaCls}">${delta}</span>
+    <span class="stat-foot">${foot}</span>
+  </div>`;
+}
+function renderCmStats(){
+  const f = cmFactors(), p = structureOf('plan'), a = structureOf('actual');
+  const cmGap = f.CMa - f.CMp;
+  const rateGapPp = (a.marginRate - p.marginRate)*100;
+  const covGapPp = (a.coverage - p.coverage)*100;
+  const ytdCm = ytd(PL.data.profit_after_direct_cost.actual_monthly);
+  document.getElementById('cmStatGrid').innerHTML =
+    statCard('차감손익 (연간)', `${fmt1(f.CMa)}<span class="unit">억</span>`,
+      `${fmtSigned(cmGap)}억 <span class="base">vs 계획 ${fmt1(f.CMp)}억</span>`, cmGap>=0?'pos':'neg',
+      `1~${elapsedMonths}월 확정 누계 ${fmt1(ytdCm)}억 · 연간계획 대비 ${fmtPct(ytdCm/f.CMp)}`) +
+    statCard('차감손익률', `${fmt1(a.marginRate*100)}<span class="unit">%</span>`,
+      `${fmtSigned(rateGapPp)}%p <span class="base">vs 계획 ${fmt1(p.marginRate*100)}%</span>`, rateGapPp>=0?'pos':'neg',
+      `매출 ${fmt1(a.revenue)}억 대비 차감손익 ${fmt1(a.left)}억 · 계획 대비 ${fmt1(Math.abs(rateGapPp))}%p ${rateGapPp>=0?'상승':'하락'}`) +
+    statCard('고정비 커버리지', `${fmt1(a.coverage*100)}<span class="unit">%</span>`,
+      `${fmtSigned(covGapPp)}%p <span class="base">vs 계획 ${fmt1(p.coverage*100)}%</span>`, covGapPp>=0?'pos':'neg',
+      `차감손익 ${fmt1(a.left)}억 ÷ 고정비 성격 비용 ${fmt1(a.baseCost)}억`) +
+    statCard('손익분기 매출', `${fmt1(a.breakEven)}<span class="unit">억</span>`,
+      `${fmtSigned(a.breakEven-p.breakEven)}억 <span class="base">vs 계획 ${fmt1(p.breakEven)}억</span>`,
+      (a.breakEven-p.breakEven)<=0?'pos':'neg',
+      `현재 매출 전망 ${fmt1(a.revenue)}억 기준 <b>${fmt1(a.breakEven-a.revenue)}억 부족</b>`);
+}
+
+function renderCmFlow(){
+  const f = cmFactors();
+  const segments = f.a.map((x,i)=>({name:x.label, color:x.color, values:[x.rev, x.cm]}));
+  document.getElementById('cmFlowLegend').innerHTML = segments.map(sg=>
+    `<span class="legend-item"><span class="legend-swatch" style="background:${sg.color};opacity:.4"></span>${sg.name}</span>`).join('');
+  renderMixFlow(document.getElementById('cmShareFlow'), segments, ['매출 비중', '차감손익 기여']);
+
+  const sorted = f.perSeg.slice().sort((x,y)=>(y.reva/f.Ra - y.cma/f.CMa) - (x.reva/f.Ra - x.cma/f.CMa));
+  const worst = sorted[0], best = sorted[sorted.length-1];
+  document.getElementById('cmShareExplain').innerHTML =
+    `<b>${worst.label}</b>은 매출의 <b>${fmtPct(worst.reva/f.Ra)}</b>를 차지하지만 차감손익 기여는 <b>${fmtPct(worst.cma/f.CMa)}</b>에 그칩니다
+     (차감손익률 ${fmt1(worst.ma*100)}%). 반대로 <b>${best.label}</b>은 매출 비중 ${fmtPct(best.reva/f.Ra)}로
+     차감손익의 <b>${fmtPct(best.cma/f.CMa)}</b>를 만들어냅니다 (차감손익률 ${fmt1(best.ma*100)}%).<br>
+     <b>→ 매출 규모와 이익 기여가 역전된 구조로, 외형 성장이 곧 수익성으로 연결되지 않습니다.</b>`;
+}
+
+function renderCmSegTable(){
+  const f = cmFactors();
+  const row = x => `<tr>
+    <td class="name-cell"><span class="dot" style="background:${x.color}"></span>${x.label}</td>
+    <td>${fmt1(x.revp)} → ${fmt1(x.reva)}</td>
+    <td>${fmt1(x.dcp)} → ${fmt1(x.dca)}</td>
+    <td>${fmt1(x.cmp)} → ${fmt1(x.cma)}</td>
+    <td class="diff ${x.gap>=0?'pos':'neg'}">${fmtSigned(x.gap)}</td>
+    <td>${fmt1(x.mp*100)}% → ${fmt1(x.ma*100)}%</td>
+    <td>${fmtPct(x.cma/f.CMa)}</td>
+  </tr>`;
+  document.getElementById('cmSegTable').innerHTML =
+    `<thead><tr>
+       <th>사업</th><th>매출 (계획→실적)</th><th>매출직접비 (계획→실적)</th>
+       <th>차감손익 (계획→실적)</th><th>증감</th><th>차감손익률 (계획→실적)</th><th>차감손익 기여도</th>
+     </tr></thead><tbody>${f.perSeg.map(row).join('')}
+     <tr class="emph"><td class="name-cell">합계</td>
+       <td>${fmt1(f.Rp)} → ${fmt1(f.Ra)}</td>
+       <td>${fmt1(f.perSeg.reduce((a,x)=>a+x.dcp,0))} → ${fmt1(f.perSeg.reduce((a,x)=>a+x.dca,0))}</td>
+       <td>${fmt1(f.CMp)} → ${fmt1(f.CMa)}</td>
+       <td class="diff ${f.CMa-f.CMp>=0?'pos':'neg'}">${fmtSigned(f.CMa-f.CMp)}</td>
+       <td>${fmt1(f.CMp/f.Rp*100)}% → ${fmt1(f.CMa/f.Ra*100)}%</td>
+       <td>100.0%</td></tr>
+     </tbody>`;
+}
+
+function renderCmBridge(){
+  const f = cmFactors();
+  renderWaterfall(document.getElementById('cmBridge'), {
+    items:[
+      {label:'계획 차감손익', value:f.CMp, type:'total'},
+      {label:'물량 효과', value:f.volume, type:'delta'},
+      {label:'믹스 효과', value:f.mix, type:'delta'},
+      {label:'마진율 효과', value:f.rate, type:'delta'},
+      {label:'실적 차감손익', value:f.CMa, type:'total'},
+    ], unit:'억', valueFmt:fmt1, favHigh:true});
+
+  const offset = f.volume!==0 ? Math.abs(f.mix/f.volume) : 0;
+  document.getElementById('cmBridgeExplain').innerHTML =
+    `차감손익은 계획 <b>${fmt1(f.CMp)}억</b>에서 실적 <b>${fmt1(f.CMa)}억</b>으로 <b>${fmtSigned(f.CMa-f.CMp)}억</b>
+     (${fmtPctSigned((f.CMa-f.CMp)/Math.abs(f.CMp))}) 변동했습니다.<br>
+     · <b>물량 효과 ${fmtSigned(f.volume)}억</b> — 매출이 계획 대비 ${fmtSigned(f.Ra-f.Rp)}억 증가한 데 따른 효과입니다.<br>
+     · <b>믹스 효과 ${fmtSigned(f.mix)}억</b> — 그 증가분이 차감손익률이 낮은 사업에 집중되면서 발생한 손실입니다.<br>
+     · <b>마진율 효과 ${fmtSigned(f.rate)}억</b> — 각 사업의 차감손익률 자체는 계획 대비 ${f.rate>=0?'개선':'악화'}되었습니다.<br>
+     <b>→ 사업별 수익성 관리(마진율)는 계획대로 이행되었으나, 매출 포트폴리오가 저마진 사업으로 쏠리면서
+     믹스 효과가 물량 효과를 ${offset.toFixed(1)}배 상쇄해 차감손익이 감소했습니다.</b>`;
+
+  const row = x => `<tr>
+    <td class="name-cell"><span class="dot" style="background:${x.color}"></span>${x.label}</td>
+    <td>${fmtPct(x.wp)} → ${fmtPct(x.wa)}</td>
+    <td class="diff ${x.wa-x.wp>=0?'pos':'neg'}">${fmtSigned((x.wa-x.wp)*100)}%p</td>
+    <td class="diff ${x.volume>=0?'pos':'neg'}">${fmtSigned(x.volume)}</td>
+    <td class="diff ${x.mix>=0?'pos':'neg'}">${fmtSigned(x.mix)}</td>
+    <td class="diff ${x.rate>=0?'pos':'neg'}">${fmtSigned(x.rate)}</td>
+    <td class="diff ${x.gap>=0?'pos':'neg'}">${fmtSigned(x.gap)}</td>
+  </tr>`;
+  document.getElementById('cmFactorTable').innerHTML =
+    `<thead><tr><th>사업</th><th>매출 비중 (계획→실적)</th><th>비중 변화</th>
+      <th>물량 효과</th><th>믹스 효과</th><th>마진율 효과</th><th>차감손익 증감</th></tr></thead>
+     <tbody>${f.perSeg.map(row).join('')}
+     <tr class="emph"><td class="name-cell">합계</td><td>100.0% → 100.0%</td><td>–</td>
+       <td class="diff ${f.volume>=0?'pos':'neg'}">${fmtSigned(f.volume)}</td>
+       <td class="diff ${f.mix>=0?'pos':'neg'}">${fmtSigned(f.mix)}</td>
+       <td class="diff ${f.rate>=0?'pos':'neg'}">${fmtSigned(f.rate)}</td>
+       <td class="diff ${f.CMa-f.CMp>=0?'pos':'neg'}">${fmtSigned(f.CMa-f.CMp)}</td></tr>
+     </tbody>`;
+}
+
+function renderCmMonthly(){
+  const cm = PL.data.profit_after_direct_cost, mr = PL.data.margin_after_direct_cost;
+  const est = PL.confirmed_monthly.map(c=>c==='추정');
+  renderTargetBar(document.getElementById('cmMonthAmount'),
+    {labels:MONTHS, plan:cm.plan_monthly, actual:cm.actual_monthly, estFlags:est});
+  renderLineCompare(document.getElementById('cmMonthRate'),
+    {labels:MONTHS, plan:mr.plan_monthly.map(v=>v*100), actual:mr.actual_monthly.map(v=>v*100),
+     estFlags:est, valueFmt:v=>fmt1(v), unit:'%', diffUnit:'%p'});
+}
+
+/* ---------------- 고정비 커버리지 · 손익분기 ---------------- */
+function renderProfitStructure(){
+  const p = structureOf('plan'), a = structureOf('actual');
+  const rows = [
+    {label:'매출', p:p.revenue, a:a.revenue, favHigh:true, cls:'total'},
+    {label:'(−) 매출직접비', sub:'이벤트·협찬·캠페인 집행비 · 변동비 성격', p:p.directCost, a:a.directCost, favHigh:false, cls:'sub'},
+    {label:'매출직접비 차감손익', sub:'고정비 부담 전 이익', p:p.left, a:a.left, favHigh:true, cls:'total'},
+    {label:'차감손익률', p:p.per100, a:a.per100, favHigh:true, cls:'rate', unit:'%'},
+    {label:'(−) 고정비 성격 비용', sub:'프로그램제작비·간접비·전사관리비', p:p.baseCost, a:a.baseCost, favHigh:false, cls:'sub'},
+    {label:'영업손익', p:p.profit, a:a.profit, favHigh:true, cls:'total'},
+    {label:'고정비 커버리지', sub:'차감손익 ÷ 고정비 성격 비용', p:p.coverage*100, a:a.coverage*100, favHigh:true, cls:'rate', unit:'%'},
+    {label:'손익분기 매출 (BEP)', sub:'고정비 ÷ 차감손익률', p:p.breakEven, a:a.breakEven, favHigh:false, cls:'total'},
+  ];
+  document.getElementById('structureTable').innerHTML =
+    `<thead><tr><th>구분</th><th class="col-plan">계획</th><th class="col-actual">실적</th><th class="grp-start">GAP</th></tr></thead><tbody>` +
+    rows.map(r=>{
+      const gap = r.a-r.p, gapCls = (r.favHigh ? gap>=0 : gap<=0) ? 'pos':'neg', u = r.unit||'';
+      return `<tr class="${r.cls}"><td>${r.label}${r.sub?`<span class="rowsub">${r.sub}</span>`:''}</td><td class="col-plan">${fmt1(r.p)}${u}</td><td class="col-actual">${fmt1(r.a)}${u}</td><td class="diff ${gapCls} grp-start">${fmtSigned(gap)}${u}</td></tr>`;
+    }).join('') + `</tbody>`;
+
+  renderBepGauge(document.getElementById('bepChart'), p, a);
+  const savedBase = p.baseCost - a.baseCost;
+  document.getElementById('bepCaption').innerHTML =
+    `차감손익률이 <b>${fmt1(p.per100)}% → ${fmt1(a.per100)}%</b>로 ${fmt1(Math.abs(a.per100-p.per100))}%p 하락하면서,
+     ${savedBase>0?`고정비 성격 비용을 계획 대비 <b>${fmt1(savedBase)}억 절감</b>했음에도 `:''}손익분기 매출은
+     <b>${fmt1(p.breakEven)}억 → ${fmt1(a.breakEven)}억</b>으로 ${fmt1(Math.abs(a.breakEven-p.breakEven))}억 상승했습니다.
+     현재 매출 전망 ${fmt1(a.revenue)}억은 손익분기의 <b>${fmtPct(a.revenue/a.breakEven, 0)}</b> 수준으로,
+     손익분기 도달까지 <b>${fmt1(a.breakEven-a.revenue)}억</b>의 매출이 추가로 필요합니다.
+     <br><b>→ 동일 마진율에서 매출로만 적자를 해소하려면 현재의 ${(a.breakEven/a.revenue).toFixed(1)}배 규모가 필요합니다.
+     매출 확대보다 차감손익률 제고가 선행되어야 합니다.</b>`;
+}
+
+/* ---------------- 영업손익 변동 요인 ---------------- */
+const VARIANCE_ITEMS = [
+  {key:'revenue_total', label:'매출', sign:1},
+  {key:'direct_cost_total', label:'매출직접비', sign:-1},
+  {key:'program_cost', label:'프로그램제작비', sign:-1},
+  {key:'indirect_cost', label:'간접비', sign:-1},
+  {key:'company_mgmt_cost', label:'전사관리비', sign:-1},
+];
+function renderVarianceWaterfall(){
+  const profit = PL.data.profit_total;
+  const items = [{label:'계획 손익', value:profit.plan_annual, type:'total'}];
+  VARIANCE_ITEMS.forEach(it=>{
+    const d = PL.data[it.key];
+    items.push({label:it.label, value: it.sign*(d.actual_annual-d.plan_annual), type:'delta'});
+  });
+  items.push({label:'실적 손익', value:profit.actual_annual, type:'total'});
+  renderWaterfall(document.getElementById('varianceWaterfall'), {items, unit:'억', valueFmt:fmt1, favHigh:true});
+
+  const gap = profit.actual_annual - profit.plan_annual;
+  const deltas = items.filter(i=>i.type==='delta');
+  const best = deltas.reduce((a,b)=> b.value>a.value?b:a);
+  const worst = deltas.reduce((a,b)=> b.value<a.value?b:a);
+  const cmGap = PL.data.profit_after_direct_cost.actual_annual - PL.data.profit_after_direct_cost.plan_annual;
+  document.getElementById('varianceHint').innerHTML =
+    `영업손익은 계획 <b>${fmt1(profit.plan_annual)}억</b>에서 실적 <b>${fmt1(profit.actual_annual)}억</b>으로
+     ${fmtSigned(gap)}억 ${gap>=0?'개선':'악화'}되었습니다.
+     최대 개선 요인은 <span class="pos">${best.label} ${fmtSigned(best.value)}억</span>,
+     최대 악화 요인은 <span class="neg">${worst.label} ${fmtSigned(worst.value)}억</span>입니다.<br>
+     <b>→ 매출 증가분의 대부분이 매출직접비로 상쇄되어 차감손익은 오히려 ${fmtSigned(cmGap)}억 감소했고,
+     손익 개선은 고정비 절감에 의존한 ${fmt1(Math.abs(gap))}억에 그쳤습니다.</b>`;
+}
+
+/* ---------------- 연간 착지 전망 ---------------- */
+function renderScenario(){
+  const remainMonths = 12 - elapsedMonths;
+  const rest = remainMonths>0 ? `${MONTHS[elapsedMonths]}~12월` : '잔여 기간 없음';
+  document.getElementById('scenarioHint').textContent =
+    `1~${elapsedMonths}월 확정 실적 기준 · 잔여 ${remainMonths}개월(${rest}) 소요 재원과 추정치를 비교`;
+  const cards = [
+    {key:'revenue_total', label:'매출', favHigh:true, needWord:'잔여 필요액', avgWord:'월평균 필요액', kind:'rev'},
+    {key:'profit_after_direct_cost', label:'매출직접비 차감손익', favHigh:true, needWord:'잔여 필요액', avgWord:'월평균 필요액', kind:'cm'},
+    {key:'cost_total', label:'비용', favHigh:false, needWord:'잔여 예산', avgWord:'월평균 집행 가능액', kind:'cost'},
+    {key:'profit_total', label:'영업손익', favHigh:true, needWord:'잔여 허용 손실', avgWord:'월평균 허용 손실', kind:'pl'},
+  ].map(cfg=>{
+    const d = PL.data[cfg.key];
+    const planAnnual = d.plan_annual, ytdActual = ytd(d.actual_monthly);
+    const remainNeed = planAnnual - ytdActual;
+    const remainNeedAvg = remainMonths>0 ? remainNeed/remainMonths : 0;
+    const recentAvg = sum(d.actual_monthly.slice(Math.max(0,elapsedMonths-3), elapsedMonths))/Math.min(3, elapsedMonths);
+    const remainForecast = sum(d.actual_monthly.slice(elapsedMonths));
+    const forecastGap = cfg.favHigh ? remainForecast - remainNeed : remainNeed - remainForecast;
+    const multiple = recentAvg!==0 ? remainNeedAvg/recentAvg : null;
+    let verdict, tone, note;
+    if (cfg.kind === 'rev' || cfg.kind === 'cm'){
+      if (forecastGap >= 0){
+        const tough = multiple!==null && multiple > 2;
+        tone = tough ? 'warning' : 'good';
+        verdict = tough ? '달성 가능 · 부담 높음' : '달성 가능';
+        note = `${rest} 추정 합계 ${fmt1(remainForecast)}억은 잔여 필요액 ${fmt1(remainNeed)}억을 `
+             + `<b>${fmt1(Math.abs(forecastGap))}억 상회</b>합니다. 다만 월평균 필요액 ${fmt1(remainNeedAvg)}억은 `
+             + `최근 3개월 실적 월평균 ${fmt1(recentAvg)}억의 <b>${multiple!==null?multiple.toFixed(1):'-'}배</b> 수준으로, `
+             + `하반기 대형 건의 실제 성사 여부가 달성의 전제 조건입니다.`;
+      } else {
+        tone = 'critical'; verdict = '미달 전망';
+        note = `${rest} 추정 합계 ${fmt1(remainForecast)}억을 달성하더라도 잔여 필요액 ${fmt1(remainNeed)}억 대비 `
+             + `<b>${fmt1(Math.abs(forecastGap))}억 미달</b>이 예상됩니다.`;
+      }
+    } else if (cfg.kind === 'cost'){
+      if (forecastGap >= 0){
+        tone = 'good'; verdict = '예산 내 집행 전망';
+        note = `잔여 예산 ${fmt1(remainNeed)}억 대비 ${rest} 추정 집행액이 ${fmt1(remainForecast)}억으로 `
+             + `<b>${fmt1(Math.abs(forecastGap))}억의 여유</b>가 있습니다.`;
+      } else {
+        tone = Math.abs(forecastGap) > planAnnual*0.05 ? 'critical' : 'warning';
+        verdict = '예산 초과 전망';
+        note = `잔여 예산 ${fmt1(remainNeed)}억 대비 ${rest} 추정 집행액이 ${fmt1(remainForecast)}억으로 `
+             + `<b>${fmt1(Math.abs(forecastGap))}억 초과</b>가 예상됩니다. 최근 3개월 월평균 ${fmt1(recentAvg)}억 대비 `
+             + `잔여 기간 월평균은 ${fmt1(remainMonths>0?remainForecast/remainMonths:0)}억으로 집행 규모가 확대됩니다.`;
+      }
+    } else {
+      if (forecastGap >= 0){
+        tone = 'good'; verdict = '계획 내 관리 전망';
+        note = `${rest} 허용 손실 한도 ${fmt1(Math.abs(remainNeed))}억 대비 추정 손실이 ${fmt1(Math.abs(remainForecast))}억으로 `
+             + `<b>${fmt1(Math.abs(forecastGap))}억의 여유</b>가 있습니다.`;
+      } else {
+        tone = 'warning'; verdict = '계획 초과 전망';
+        note = `${rest} 허용 손실 한도는 ${fmt1(Math.abs(remainNeed))}억이나, 추정 손실이 `
+             + `<b>${fmt1(Math.abs(forecastGap))}억 초과</b>할 것으로 예상됩니다.`;
+      }
+    }
+    const rows = [
+      {k:'연간계획', v:`${fmt1(planAnnual)}억`},
+      {k:`1~${elapsedMonths}월 확정실적`, v:`${fmt1(ytdActual)}억`},
+      {k:`${rest} ${cfg.needWord}`, v:`${fmt1(remainNeed)}억`, highlight:true},
+      {k:cfg.avgWord, v:`${fmt1(remainNeedAvg)}억`},
+      {k:'최근 3개월 월평균', v:`${fmt1(recentAvg)}억`},
+      {k:`${rest} 추정 합계`, v:`${fmt1(remainForecast)}억`, cls: forecastGap>=0?'pos':'neg'},
+    ];
+    return `<div class="scenario-card">
+      <div class="sc-top"><span class="sc-title">${cfg.label}</span><span class="sc-verdict ${tone}">${verdict}</span></div>
+      <div class="sc-rows">${rows.map(r=>`<div class="sc-row${r.highlight?' highlight':''}"><span class="k">${r.k}</span><span class="v${r.cls?' '+r.cls:''}">${r.v}</span></div>`).join('')}</div>
+      <div class="sc-note">${note}</div>
+    </div>`;
+  });
+  document.getElementById('scenarioGrid').innerHTML = cards.join('');
+}
+
+/* ---------------- 종합 진단 ---------------- */
+function generateInsights(){
+  const f = cmFactors(), p = structureOf('plan'), a = structureOf('actual');
+  const rev = PL.data.revenue_total, cost = PL.data.cost_total, profit = PL.data.profit_total;
+  const out = [];
+  const cmGap = f.CMa - f.CMp;
+
+  out.push({tone: cmGap>=0?'good':'critical',
+    html:`<b>차감손익</b>은 계획 ${fmt1(f.CMp)}억 대비 실적 <b>${fmt1(f.CMa)}억</b>으로 <b>${fmtSigned(cmGap)}억</b>
+          (${fmtPctSigned(cmGap/Math.abs(f.CMp))}), 차감손익률은 <b>${fmt1(p.marginRate*100)}% → ${fmt1(a.marginRate*100)}%</b>
+          (${fmtSigned((a.marginRate-p.marginRate)*100)}%p)로 하락했습니다. 매출이 계획 대비 ${fmtSigned(f.Ra-f.Rp)}억 증가한 것과
+          상반된 결과입니다.`});
+
+  out.push({tone:'critical',
+    html:`요인 분해 결과 <b>믹스 효과 ${fmtSigned(f.mix)}억</b>이 <b>물량 효과 ${fmtSigned(f.volume)}억</b>을
+          ${Math.abs(f.mix/f.volume).toFixed(1)}배 상쇄했습니다. 매출 증가분이 차감손익률이 가장 낮은 사업에 집중된 것이
+          수익성 하락의 직접적 원인입니다.`});
+
+  const allUp = f.perSeg.every(x=>x.ma >= x.mp);
+  out.push({tone: allUp?'good':'neutral',
+    html:`반면 <b>마진율 효과는 ${fmtSigned(f.rate)}억</b>으로, ${allUp?'전 사업의 차감손익률이 계획을 상회':'사업별 차감손익률은 계획과 유사한 수준'}했습니다
+          (${f.perSeg.filter(x=>x.dca>0).map(x=>`${x.label} ${fmt1(x.mp*100)}%→${fmt1(x.ma*100)}%`).join(', ')}).
+          개별 사업의 수익성 관리는 계획대로 이행되었으며, 문제는 포트폴리오 구성에 있습니다.`});
+
+  const sorted = f.perSeg.slice().sort((x,y)=>(y.reva/f.Ra - y.cma/f.CMa) - (x.reva/f.Ra - x.cma/f.CMa));
+  const w = sorted[0], b = sorted[sorted.length-1];
+  out.push({tone:'warning',
+    html:`<b>${w.label}</b>이 매출의 ${fmtPct(w.reva/f.Ra)}를 차지하나 차감손익 기여는 ${fmtPct(w.cma/f.CMa)}에 불과한 반면,
+          <b>${b.label}</b>은 매출 비중 ${fmtPct(b.reva/f.Ra)}로 차감손익의 ${fmtPct(b.cma/f.CMa)}를 창출합니다.
+          자원 배분 기준을 매출액에서 차감손익 기여도로 전환할 필요가 있습니다.`});
+
+  out.push({tone: a.coverage>=p.coverage?'good':'critical',
+    html:`<b>고정비 커버리지</b>는 ${fmt1(p.coverage*100)}% → <b>${fmt1(a.coverage*100)}%</b>로 하락했습니다.
+          고정비 성격 비용을 계획 대비 ${fmt1(p.baseCost-a.baseCost)}억 절감했음에도, 차감손익률 하락으로
+          <b>손익분기 매출은 ${fmt1(p.breakEven)}억 → ${fmt1(a.breakEven)}억</b>으로 상승해
+          현재 매출 전망 대비 <b>${fmt1(a.breakEven-a.revenue)}억</b>이 부족합니다.`});
+
+  const remainShare = sum(rev.actual_monthly.slice(elapsedMonths))/rev.actual_annual;
+  if (remainShare > 0.4) out.push({tone:'warning',
+    html:`연간 매출의 <b>${fmtPct(remainShare)}</b>가 잔여 ${12-elapsedMonths}개월(${MONTHS[elapsedMonths]}~12월) 추정치에 의존하고 있어,
+          하반기 대형 건의 성사 여부에 따라 연간 실적의 변동폭이 큽니다.`});
+
+  const costGap = cost.actual_annual - cost.plan_annual;
+  const profitGap = profit.actual_annual - profit.plan_annual;
+  out.push({tone: profitGap>=0?'good':'warning',
+    html:`영업손익은 계획 ${fmt1(profit.plan_annual)}억 대비 <b>${fmt1(profit.actual_annual)}억</b>으로 ${fmtSigned(profitGap)}억
+          ${profitGap>=0?'개선':'악화'} 전망이나, 비용은 <b>${fmtSigned(costGap)}억</b> ${costGap>=0?'초과':'절감'}이며
+          개선분은 차감손익이 아닌 고정비 절감에서 발생했습니다. 구조적 개선으로 보기 어렵습니다.`});
+  return out;
+}
+function renderInsights(){
+  document.getElementById('insightList').innerHTML =
+    generateInsights().map(i=>`<div class="insight-card ${i.tone}"><span class="tag"></span><p>${i.html}</p></div>`).join('');
+  document.getElementById('trendAsOf').textContent = `1~${elapsedMonths}월 확정 실적 기준 · 9~12월 추정치 포함`;
+}
+function renderRiskBanner(){
+  const rev = PL.data.revenue_total, cost = PL.data.cost_total, profit = PL.data.profit_total, margin = PL.data.margin_after_direct_cost;
+  const risks = [];
+  const costGap = cost.actual_annual - cost.plan_annual;
+  if (costGap > 0) risks.push({tone: costGap > cost.plan_annual*0.05 ? 'critical':'warning', label:'비용',
+    html:`연간 비용 계획 대비 <b>${fmt1(costGap)}억 초과</b> 전망 (${fmt1(cost.plan_annual)} → ${fmt1(cost.actual_annual)}억)`});
+  const marginGapPp = (margin.actual_annual - margin.plan_annual)*100;
+  if (marginGapPp < -2) risks.push({tone:'critical', label:'수익성',
+    html:`차감손익률 <b>${fmtSigned(marginGapPp)}%p</b> 하락 (${fmtPct(margin.plan_annual)} → ${fmtPct(margin.actual_annual)}) — 안 남는 사업으로 매출 쏠림`});
+  const remainMonths = 12 - elapsedMonths;
+  if (remainMonths > 0){
+    const remainShare = sum(rev.actual_monthly.slice(elapsedMonths))/rev.actual_annual;
+    if (remainShare > 0.4) risks.push({tone:'warning', label:'실행 리스크',
+      html:`연간 매출의 <b>${fmtPct(remainShare)}</b>가 잔여 ${remainMonths}개월(${MONTHS[elapsedMonths]}~12월) 추정치에 의존`});
+  }
+  const profitGap = profit.actual_annual - profit.plan_annual;
+  if (profitGap >= 0 && risks.length < 3) risks.push({tone:'good', label:'손익',
+    html:`연간 손익은 계획 대비 <b>${fmt1(profitGap)}억 개선</b> 전망 (${fmt1(profit.plan_annual)} → ${fmt1(profit.actual_annual)}억)`});
+  document.getElementById('riskBanner').innerHTML = risks.slice(0,3).map(r=>
+    `<div class="risk-chip ${r.tone}"><span class="risk-label">${r.label}</span><span>${r.html}</span></div>`).join('');
+}
+function initViewNav(){
+  const nav = document.getElementById('viewNav');
+  const views = {viewDashboard:document.getElementById('viewDashboard'),
+                 viewTrend:document.getElementById('viewTrend'),
+                 viewOutlook:document.getElementById('viewOutlook')};
+  nav.querySelectorAll('.view-nav-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      nav.querySelectorAll('.view-nav-btn').forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      Object.keys(views).forEach(k=>{ views[k].hidden = (k!==btn.dataset.view); });
+    });
+  });
+}
+
+
+/* ---------------- 엑셀 업로드 ---------------- */
+/* 원자료 시트 구조를 머리글 기준으로 해석 — 행/열이 다소 밀려도 라벨로 맞춥니다.
+   파일은 브라우저 안에서만 파싱되며 외부로 전송되지 않습니다. */
+const SHEET_SEQ = [
+  ['revenue_total','매출'], ['content_sales','콘텐츠판매'], ['ads','광고'], ['content_biz','콘텐츠제작사업'],
+  ['event_rev','이벤트'], ['sponsor_rev','협찬'], ['campaign_rev','캠페인'],
+  ['cost_total','비용'], ['direct_cost_total','매출직접비'],
+  ['event_dc','이벤트'], ['sponsor_dc','협찬'], ['campaign_dc','캠페인'],
+  ['program_cost','프로그램제작비'], ['production_cost','제작비'], ['labor_cost','인건비'],
+  ['indirect_cost','간접비'], ['broadcast_facility','방송시설유지비'], ['building_cost','사옥관련비용'],
+  ['association_fee','협회비'], ['fees_paid','지급수수료'], ['other_cost','기타비용'],
+  ['company_mgmt_cost','전사관리비'],
+  ['profit_total','손익'], ['profit_after_direct_cost','매출직접비차감손익'],
+  ['margin_after_direct_cost','매출직접비차감손익률'],
+  ['event_margin','이벤트'], ['sponsor_margin','협찬'], ['campaign_margin','캠페인'],
+];
+const squash = (v) => String(v==null?'':v).replace(/\s+/g,'').trim();
+
+function parseWorkbook(buffer){
+  if (typeof XLSX === 'undefined') throw new Error('엑셀 해석 모듈을 불러오지 못했습니다. 인터넷 연결을 확인해 주세요.');
+  const wb = XLSX.read(buffer, {type:'array'});
+  const sheetName = wb.SheetNames[0];
+  const ws = wb.Sheets[sheetName];
+  if (!ws) throw new Error('워크시트를 찾을 수 없습니다.');
+  const grid = XLSX.utils.sheet_to_json(ws, {header:1, raw:true, defval:null});
+  const cell = (r,c) => (grid[r-1] && grid[r-1][c-1] !== undefined) ? grid[r-1][c-1] : null;
+  const txt  = (r,c) => { const v = cell(r,c); return v==null ? '' : String(v).trim(); };
+  const num  = (r,c) => {
+    const v = cell(r,c);
+    if (v==null || v==='') return 0;
+    const n = typeof v==='number' ? v : parseFloat(String(v).replace(/[,\s]/g,''));
+    return isFinite(n) ? n : 0;
+  };
+
+  // 머리글 행
+  let hr = -1;
+  for (let r=1; r<=30 && hr<0; r++){ if (squash(txt(r,2)).indexOf('구분')===0) hr = r; }
+  if (hr < 0) throw new Error("머리글 행을 찾지 못했습니다. B열에 '구분 (단위: 억)' 이 있는 시트인지 확인해 주세요.");
+
+  // 계획 / 실적 기준 열
+  const width = Math.max((grid[hr-1]||[]).length, 40);
+  let planCol = -1, actCol = -1;
+  for (let c=3; c<=width; c++){
+    const h = squash(txt(hr,c));
+    if (planCol<0 && h.indexOf('계획')>=0) planCol = c;
+    else if (planCol>=0 && actCol<0 && h.indexOf('실적')>=0) actCol = c;
+  }
+  if (planCol<0 || actCol<0) throw new Error("머리글에서 '계획' 또는 '실적' 열을 찾지 못했습니다.");
+  if (actCol - planCol < 17) throw new Error('계획 구간(월·분기) 열 수가 예상과 다릅니다.');
+
+  // 라벨 순서대로 행 매칭 (일치하지 않는 행은 건너뜀)
+  const rowOf = {}; let si = 0;
+  for (let r=hr+1; r<=hr+80 && si<SHEET_SEQ.length; r++){
+    const label = squash(txt(r,2));
+    if (!label) continue;
+    if (label === squash(SHEET_SEQ[si][1])){ rowOf[SHEET_SEQ[si][0]] = r; si++; }
+  }
+  const missing = SHEET_SEQ.filter(x=>rowOf[x[0]]===undefined).map(x=>x[1]);
+  if (missing.length) throw new Error(`다음 항목을 찾지 못했습니다: ${missing.slice(0,4).join(', ')}${missing.length>4?` 외 ${missing.length-4}건`:''}`);
+
+  const series = (r, label) => ({
+    label,
+    plan_annual: num(r, planCol),
+    plan_monthly: Array.from({length:12}, (_,i)=>num(r, planCol+1+i)),
+    plan_quarterly: Array.from({length:4}, (_,i)=>num(r, planCol+13+i)),
+    actual_annual: num(r, actCol),
+    actual_monthly: Array.from({length:12}, (_,i)=>num(r, actCol+1+i)),
+    actual_quarterly: Array.from({length:4}, (_,i)=>num(r, actCol+13+i)),
+  });
+
+  const data = {};
+  SHEET_SEQ.slice(0, 25).forEach(([key])=>{ data[key] = series(rowOf[key], txt(rowOf[key],2)); });
+
+  // 확정 / 추정 구분 (머리글 바로 윗 행)
+  const flagRow = hr-1;
+  const readFlag = (c) => squash(txt(flagRow,c))==='추정' ? '추정' : '확정';
+  const confirmed_monthly = Array.from({length:12}, (_,i)=>readFlag(actCol+1+i));
+  const confirmed_quarterly = Array.from({length:4}, (_,i)=>readFlag(actCol+13+i));
+
+  const seg = {};
+  [['event_margin','이벤트'], ['sponsor_margin','협찬'], ['campaign_margin','캠페인']].forEach(([key,label])=>{
+    seg[key] = {label, plan_annual: num(rowOf[key], planCol), actual_annual: num(rowOf[key], actCol)};
+  });
+
+  // 검증
+  const warnings = [];
+  const rev = data.revenue_total;
+  if (!(rev.actual_annual > 0)) throw new Error('매출 실적이 0이거나 비어 있습니다. 시트 구조를 확인해 주세요.');
+  const monthSum = sum(rev.actual_monthly);
+  if (Math.abs(monthSum - rev.actual_annual) > Math.max(0.5, rev.actual_annual*0.01))
+    warnings.push(`매출 월 합계(${fmt1(monthSum)}억)와 연간 실적(${fmt1(rev.actual_annual)}억)이 다릅니다`);
+  const costParts = data.direct_cost_total.actual_annual + data.program_cost.actual_annual
+                  + data.indirect_cost.actual_annual + data.company_mgmt_cost.actual_annual;
+  if (Math.abs(costParts - data.cost_total.actual_annual) > Math.max(0.5, data.cost_total.actual_annual*0.01))
+    warnings.push('비용 세부 항목 합계가 비용 총계와 일치하지 않습니다');
+  if (confirmed_monthly.every(c=>c==='확정')) warnings.push('추정 구간 표시가 없어 12개월 모두 확정으로 처리했습니다');
+
+  return {PL:{data, confirmed_monthly, confirmed_quarterly}, SEG:seg, sheetName, warnings};
+}
+
+function setUploadStatus(kind, html){
+  const box = document.getElementById('uploadStatus');
+  box.className = 'upload-status ' + kind;
+  box.innerHTML = `<span class="us-label">${kind==='ok'?'불러옴':'오류'}</span><span class="us-msg">${html}</span>`;
+  box.hidden = false;
+}
+function applyParsed(parsed, fileName){
+  PL = parsed.PL; SEG = parsed.SEG; sourceName = fileName;
+  recomputeDerived();
+  fillMonthSelect();
+  ANIM = true;
+  renderAll();
+  setTimeout(()=>{ ANIM = false; }, 1600);
+  const d = PL.data;
+  const warn = parsed.warnings.length
+    ? ` <span style="color:var(--warning);font-weight:700;">확인 필요: ${parsed.warnings.join(' · ')}</span>` : '';
+  setUploadStatus('ok',
+    `<b>${fileName}</b> — 시트 <b>${parsed.sheetName}</b> · 확정 <b>1~${elapsedMonths}월</b> · ` +
+    `매출 <b>${fmt1(d.revenue_total.actual_annual)}억</b> · 비용 <b>${fmt1(d.cost_total.actual_annual)}억</b> · ` +
+    `손익 <b>${fmt1(d.profit_total.actual_annual)}억</b>${warn} ` +
+    `<button class="link-btn" type="button" id="restoreBtn">기본 데이터로 복원</button>`);
+  const rb = document.getElementById('restoreBtn');
+  if (rb) rb.addEventListener('click', restoreOriginal);
+}
+function restoreOriginal(){
+  PL = JSON.parse(JSON.stringify(PL_ORIGINAL));
+  SEG = JSON.parse(JSON.stringify(SEG_ORIGINAL));
+  sourceName = "(AI) '26년 손익_8월.xlsx";
+  recomputeDerived(); fillMonthSelect();
+  ANIM = true; renderAll(); setTimeout(()=>{ ANIM = false; }, 1600);
+  const box = document.getElementById('uploadStatus');
+  box.hidden = true; box.innerHTML = '';
+  document.getElementById('xlsxInput').value = '';
+}
+function initUpload(){
+  const btn = document.getElementById('uploadBtn');
+  const input = document.getElementById('xlsxInput');
+  btn.addEventListener('click', ()=> input.click());
+  input.addEventListener('change', ()=>{
+    const file = input.files && input.files[0];
+    if (!file) return;
+    btn.setAttribute('aria-busy','true');
+    const reader = new FileReader();
+    reader.onerror = ()=>{
+      btn.removeAttribute('aria-busy');
+      setUploadStatus('error', '파일을 읽지 못했습니다. 다시 시도해 주세요.');
+    };
+    reader.onload = (ev)=>{
+      try {
+        applyParsed(parseWorkbook(new Uint8Array(ev.target.result)), file.name);
+      } catch (err){
+        setUploadStatus('error',
+          `<b>${file.name}</b> 을(를) 불러오지 못했습니다 — ${err.message}<br>` +
+          `기존 손익 시트와 같은 형식(B열 항목명 · 계획/실적 각 월·분기 열)인지 확인해 주세요. 화면은 이전 데이터를 유지합니다.`);
+      } finally {
+        btn.removeAttribute('aria-busy');
+        input.value = '';
+      }
+    };
+    reader.readAsArrayBuffer(file);
+  });
+}
+
+/* ---------------- 테마 ---------------- */
+function currentTheme(){
+  const stamped = document.documentElement.getAttribute('data-theme');
+  if (stamped) return stamped;
+  return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+}
+function syncThemeBtn(){
+  document.getElementById('themeBtn').textContent = currentTheme()==='dark' ? '라이트 모드' : '다크 모드';
+}
+function initTheme(){
+  const btn = document.getElementById('themeBtn');
+  let saved = null;
+  try { saved = localStorage.getItem('pl-theme'); } catch(e){}
+  if (saved) document.documentElement.setAttribute('data-theme', saved);
+  syncThemeBtn();
+  btn.addEventListener('click', ()=>{
+    const next = currentTheme()==='dark' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', next);
+    try { localStorage.setItem('pl-theme', next); } catch(e){}
+    syncThemeBtn();
+    ANIM = false; renderAll();
+  });
+}
+
+/* ---------------- init ---------------- */
+function renderAll(){
+  document.getElementById('asofValue').textContent = `2026년 ${elapsedMonths}월 실적 기준`;
+  document.getElementById('asofSub').innerHTML = elapsedMonths>=12
+    ? '단위: 억원 · <span class="badge badge--confirmed">확정</span> 1~12월 실적'
+    : `단위: 억원 · <span class="badge badge--confirmed">확정</span> 1~${elapsedMonths}월 실적 · <span class="badge badge--estimated">추정</span> ${elapsedMonths+1}~12월 실적`;
+  document.getElementById('footNote').textContent = elapsedMonths>=12
+    ? `원자료: ${sourceName} · 비용 구분은 자체 PL 분류 기준 적용 · 1~12월 확정 실적입니다.`
+    : `원자료: ${sourceName} · 비용 구분은 자체 PL 분류 기준 적용 · 1~${elapsedMonths}월은 확정 실적, ${elapsedMonths+1}~12월은 추정치가 반영된 실적입니다.`;
+  renderKpis();
+  renderGapCharts();
+  renderMomChart();
+  renderDcpCharts();
+  renderMixLegend();
+  renderMixChart();
+  renderSegSection();
+  renderDetailTable();
+  renderRiskBanner();
+  renderMonthKpis();
+  renderMonthDetailTable();
+  renderMonthInsights();
+  renderCmStats();
+  renderCmFlow();
+  renderCmSegTable();
+  renderCmBridge();
+  renderCmMonthly();
+  renderProfitStructure();
+  renderVarianceWaterfall();
+  renderScenario();
+  renderInsights();
+}
+buildGapPanels();
+buildTabs();
+initViewNav();
+initMonthSelect();
+initUpload();
+initTheme();
+renderAll();
+setTimeout(()=>{ ANIM = false; }, 1600);
+
+let resizeTimer = null;
+window.addEventListener('resize', ()=>{
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(()=>{
+    renderGapCharts(); renderMomChart(); renderDcpCharts(); renderMixChart();
+    renderCmFlow(); renderCmBridge(); renderCmMonthly();
+    renderProfitStructure(); renderVarianceWaterfall();
+  }, 140);
+});
+if (window.matchMedia){
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', ()=>{
+    syncThemeBtn(); ANIM = false; renderAll();
+  });
+}
+</script>
