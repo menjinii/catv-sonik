@@ -364,7 +364,7 @@ footer.note{ margin-top:22px; font-size:11.5px; color:var(--muted); text-align:c
     <div class="brand">
       <div class="brand-mark">P&amp;L</div>
       <div>
-        <h1>2026년 손익 대시보드</h1>
+        <h1 id="dashTitle">2026년 손익 대시보드</h1>
         <p>계획 대비 실적 갭 분석 · 연간 달성률 · 매출직접비 차감손익</p>
       </div>
     </div>
@@ -628,6 +628,7 @@ const cumsum = (arr) => { let acc=0; return arr.map(v=>acc+=v); };
 let elapsedMonths = PL.confirmed_monthly.filter(c=>c==='확정').length;
 let timeElapsedPct = elapsedMonths/12;
 let sourceName = "(AI) '26년 손익_8월.xlsx";
+let fyLabel = '2026';
 const PL_ORIGINAL = JSON.parse(JSON.stringify(PL));
 const SEG_ORIGINAL = JSON.parse(JSON.stringify(SEG));
 function ytd(arr){ return sum(arr.slice(0, elapsedMonths)); }
@@ -1978,7 +1979,12 @@ function parseWorkbook(buffer){
   const sheetName = wb.SheetNames[0];
   const ws = wb.Sheets[sheetName];
   if (!ws) throw new Error('워크시트를 찾을 수 없습니다.');
-  const grid = XLSX.utils.sheet_to_json(ws, {header:1, raw:true, defval:null});
+  // 시트 범위가 A1에서 시작하지 않을 수 있으므로(예: A2:AJ41) 항상 A1 기준으로 정규화한다.
+  // 그래야 grid[r-1][c-1] 이 엑셀의 절대 행·열과 일치한다.
+  const rng = XLSX.utils.decode_range(ws['!ref'] || 'A1');
+  rng.s.r = 0; rng.s.c = 0;
+  const grid = XLSX.utils.sheet_to_json(ws, {header:1, raw:true, defval:null,
+                                             range: XLSX.utils.encode_range(rng)});
   const cell = (r,c) => (grid[r-1] && grid[r-1][c-1] !== undefined) ? grid[r-1][c-1] : null;
   const txt  = (r,c) => { const v = cell(r,c); return v==null ? '' : String(v).trim(); };
   const num  = (r,c) => {
@@ -2003,6 +2009,11 @@ function parseWorkbook(buffer){
   }
   if (planCol<0 || actCol<0) throw new Error("머리글에서 '계획' 또는 '실적' 열을 찾지 못했습니다.");
   if (actCol - planCol < 17) throw new Error('계획 구간(월·분기) 열 수가 예상과 다릅니다.');
+
+  // 머리글에서 회계연도 추출 ("'27년 계획" → 2027)
+  let year = null;
+  const ym = String(txt(hr, planCol)).match(/(\d{2,4})\s*년/);
+  if (ym){ const n = parseInt(ym[1], 10); year = String(n < 100 ? 2000 + n : n); }
 
   // 라벨 순서대로 행 매칭 (일치하지 않는 행은 건너뜀)
   const rowOf = {}; let si = 0;
@@ -2051,7 +2062,7 @@ function parseWorkbook(buffer){
     warnings.push('비용 세부 항목 합계가 비용 총계와 일치하지 않습니다');
   if (confirmed_monthly.every(c=>c==='확정')) warnings.push('추정 구간 표시가 없어 12개월 모두 확정으로 처리했습니다');
 
-  return {PL:{data, confirmed_monthly, confirmed_quarterly}, SEG:seg, sheetName, warnings};
+  return {PL:{data, confirmed_monthly, confirmed_quarterly}, SEG:seg, sheetName, year, warnings};
 }
 
 function setUploadStatus(kind, html){
@@ -2062,6 +2073,7 @@ function setUploadStatus(kind, html){
 }
 function applyParsed(parsed, fileName){
   PL = parsed.PL; SEG = parsed.SEG; sourceName = fileName;
+  if (parsed.year) fyLabel = parsed.year;
   recomputeDerived();
   fillMonthSelect();
   ANIM = true;
@@ -2081,7 +2093,7 @@ function applyParsed(parsed, fileName){
 function restoreOriginal(){
   PL = JSON.parse(JSON.stringify(PL_ORIGINAL));
   SEG = JSON.parse(JSON.stringify(SEG_ORIGINAL));
-  sourceName = "(AI) '26년 손익_8월.xlsx";
+  sourceName = "(AI) '26년 손익_8월.xlsx"; fyLabel = '2026';
   recomputeDerived(); fillMonthSelect();
   ANIM = true; renderAll(); setTimeout(()=>{ ANIM = false; }, 1600);
   const box = document.getElementById('uploadStatus');
@@ -2143,7 +2155,8 @@ function initTheme(){
 
 /* ---------------- init ---------------- */
 function renderAll(){
-  document.getElementById('asofValue').textContent = `2026년 ${elapsedMonths}월 실적 기준`;
+  document.getElementById('asofValue').textContent = `${fyLabel}년 ${elapsedMonths}월 실적 기준`;
+  document.getElementById('dashTitle').textContent = `${fyLabel}년 손익 대시보드`;
   document.getElementById('asofSub').innerHTML = elapsedMonths>=12
     ? '단위: 억원 · <span class="badge badge--confirmed">확정</span> 1~12월 실적'
     : `단위: 억원 · <span class="badge badge--confirmed">확정</span> 1~${elapsedMonths}월 실적 · <span class="badge badge--estimated">추정</span> ${elapsedMonths+1}~12월 실적`;
