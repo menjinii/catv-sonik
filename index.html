@@ -161,11 +161,6 @@ body{background:var(--page); color:var(--ink); font-family:var(--font-ui);}
   background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:5px 9px; cursor:pointer;
 }
 
-/* ---------- scenario cards ---------- */
-.scenario-grid{ display:grid; grid-template-columns:repeat(4,1fr); gap:12px; }
-@media (max-width: 1100px){ .scenario-grid{ grid-template-columns:repeat(2,1fr); } }
-@media (max-width: 620px){ .scenario-grid{ grid-template-columns:1fr; } }
-
 /* ---------- stat tiles ---------- */
 .stat-grid{ display:grid; grid-template-columns:repeat(4,1fr); gap:12px; }
 @media (max-width: 980px){ .stat-grid{ grid-template-columns:repeat(2,1fr); } }
@@ -185,23 +180,6 @@ body{background:var(--page); color:var(--ink); font-family:var(--font-ui);}
 .seg-table td.name-cell{ white-space:nowrap; }
 .seg-table .dot{ display:inline-block; width:9px; height:9px; border-radius:3px; margin-right:7px; vertical-align:-1px; }
 .chart-sub{ font-size:12px; font-weight:700; color:var(--ink-2); margin-top:12px; }
-.scenario-card{ background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:16px; box-shadow:var(--shadow); display:flex; flex-direction:column; gap:10px; }
-.scenario-card .sc-top{ display:flex; align-items:center; justify-content:space-between; gap:8px; }
-.scenario-card .sc-title{ font-size:13px; font-weight:700; color:var(--ink); }
-.scenario-card .sc-verdict{ font-size:10.5px; font-weight:800; padding:3px 8px; border-radius:20px; white-space:nowrap; }
-.sc-verdict.good{ background:rgba(12,163,12,.12); color:var(--good); }
-.sc-verdict.warning{ background:rgba(201,133,0,.14); color:var(--warning); }
-.sc-verdict.critical{ background:rgba(208,59,59,.12); color:var(--critical); }
-.scenario-card .sc-rows{ display:flex; flex-direction:column; gap:1px; }
-.sc-row{ display:flex; align-items:baseline; justify-content:space-between; gap:10px; font-size:12px; padding:5px 0; border-bottom:1px dashed var(--border); }
-.sc-row:last-child{ border-bottom:none; }
-.sc-row .k{ color:var(--muted); }
-.sc-row .v{ font-weight:700; color:var(--ink); font-family:var(--font-num); font-variant-numeric:tabular-nums; }
-.sc-row.highlight .k{ color:var(--ink-2); font-weight:600; }
-.sc-row.highlight .v{ font-size:14px; }
-.sc-row .v.pos{ color:var(--good); }
-.sc-row .v.neg{ color:var(--critical); }
-.scenario-card .sc-note{ font-size:11.5px; line-height:1.55; color:var(--ink-2); border-top:1px solid var(--border); padding-top:9px; }
 
 /* ---------- explain blocks ---------- */
 .explain{ font-size:12.5px; line-height:1.7; color:var(--ink-2); background:var(--surface-2); border-radius:10px; padding:12px 14px; margin-top:10px; }
@@ -347,6 +325,10 @@ table.detail th.col-plan, table.detail td.col-plan{ color:var(--plan); }
 table.detail th.col-actual, table.detail td.col-actual{ color:var(--actual); }
 table.detail td.est{ color:var(--muted); }
 table.detail.compact{ width:auto; min-width:0; max-width:460px; }
+.structure-split{ display:flex; gap:20px; align-items:stretch; }
+.structure-split .table-wrap{ flex:0 1 auto; }
+.structure-split .explain{ flex:1 1 300px; min-width:260px; margin-top:0; }
+@media (max-width: 900px){ .structure-split{ flex-direction:column; } .structure-split .explain{ min-width:0; } }
 table.detail.compact.structure{ max-width:640px; }
 table.detail.compact.structure td:first-child{ min-width:230px; }
 table.detail.compact th, table.detail.compact td{ padding:6px 12px; white-space:nowrap; }
@@ -519,12 +501,13 @@ footer.note{ margin-top:22px; font-size:11.5px; color:var(--muted); text-align:c
 
   <section class="section panel">
     <div class="panel-head">
-      <h2>사업별 수익성 포지션</h2>
-      <span class="hint">연간 실적 기준 · 매출에서 차지하는 비중과 차감손익에 기여하는 비중의 괴리</span>
+      <h2>사업별 수익성 구조 (매출 &times; 마진율 = 차감손익)</h2>
+      <span class="hint">연간 실적 기준 · 매출 비중과 이익 기여 비중의 괴리 · 회색 눈금은 계획 위치</span>
     </div>
     <div class="chart-legend" id="cmFlowLegend"></div>
     <svg class="chart" id="cmShareFlow" viewBox="0 0 960 232" role="img" aria-label="사업별 매출 비중과 차감손익 기여 비중"></svg>
-    <div class="explain" id="cmShareExplain"></div>
+    <svg class="chart" id="cmChain" viewBox="0 0 960 268" style="margin-top:4px;" role="img" aria-label="사업별 매출과 마진율, 차감손익 기여"></svg>
+    <div class="explain" id="cmChainExplain"></div>
     <div class="table-wrap" style="margin-top:14px;">
       <table class="seg-table" id="cmSegTable"></table>
     </div>
@@ -532,46 +515,15 @@ footer.note{ margin-top:22px; font-size:11.5px; color:var(--muted); text-align:c
 
   <section class="section panel">
     <div class="panel-head">
-      <h2>차감손익 변동 요인 분해</h2>
-      <span class="hint">계획 대비 증감을 물량 · 믹스 · 마진율로 분해 · 세 요인의 합은 실적 차감손익과 일치</span>
+      <h2>손익 구조 (매출 → 차감손익 → 영업손익)</h2>
+      <span class="hint">매출에서 매출직접비를 빼고, 다시 고정비 성격 비용을 빼면 영업손익</span>
     </div>
-    <div class="chart-legend">
-      <span class="legend-item"><span class="legend-swatch" style="background:var(--good)"></span>증가 요인</span>
-      <span class="legend-item"><span class="legend-swatch" style="background:var(--critical)"></span>감소 요인</span>
+    <div class="structure-split">
+      <div class="table-wrap">
+        <table class="detail compact structure" id="structureTable"></table>
+      </div>
+      <div class="explain" id="bepCaption"></div>
     </div>
-    <svg class="chart" id="cmBridge" viewBox="0 0 960 330" role="img" aria-label="차감손익 변동 요인 분해"></svg>
-    <div class="explain" id="cmBridgeExplain"></div>
-    <div class="table-wrap" style="margin-top:14px;">
-      <table class="seg-table" id="cmFactorTable"></table>
-    </div>
-  </section>
-
-  <section class="section panel">
-    <div class="panel-head">
-      <h2>월별 차감손익 추이</h2>
-      <span class="hint">금액과 비율을 동일한 기간 축에서 비교 · 9~12월은 추정</span>
-    </div>
-    <div class="chart-legend">
-      <span class="legend-item"><span class="legend-swatch" style="background:var(--plan);opacity:.3"></span>계획</span>
-      <span class="legend-item"><span class="legend-swatch" style="background:var(--actual)"></span>실적</span>
-      <span class="legend-item"><span class="legend-swatch hatch"></span>추정 구간</span>
-    </div>
-    <div class="chart-sub">차감손익 (억원)</div>
-    <svg class="chart" id="cmMonthAmount" viewBox="0 0 960 250" role="img" aria-label="월별 차감손익 금액"></svg>
-    <div class="chart-sub">차감손익률 (%)</div>
-    <svg class="chart" id="cmMonthRate" viewBox="0 0 960 215" role="img" aria-label="월별 차감손익률"></svg>
-  </section>
-
-  <section class="section panel">
-    <div class="panel-head">
-      <h2>고정비 커버리지와 손익분기</h2>
-      <span class="hint">차감손익이 고정비 성격 비용을 얼마나 부담하는가 · 손익분기 매출 = 고정비 ÷ 차감손익률</span>
-    </div>
-    <div class="table-wrap">
-      <table class="detail compact structure" id="structureTable"></table>
-    </div>
-    <svg class="chart" id="bepChart" viewBox="0 0 960 168" style="margin-top:16px;" role="img" aria-label="손익분기 매출과 현재 매출 수준"></svg>
-    <div class="explain" id="bepCaption"></div>
   </section>
 
   <section class="section panel">
@@ -585,14 +537,6 @@ footer.note{ margin-top:22px; font-size:11.5px; color:var(--muted); text-align:c
     </div>
     <svg class="chart" id="varianceWaterfall" viewBox="0 0 960 340" role="img" aria-label="손익 계획 대비 변동 요인"></svg>
     <div class="explain" id="varianceHint"></div>
-  </section>
-
-  <section class="section">
-    <div class="section-head">
-      <h2>연간 착지 전망</h2>
-      <span class="hint" id="scenarioHint">-</span>
-    </div>
-    <div class="scenario-grid" id="scenarioGrid"></div>
   </section>
 
   <section class="section">
@@ -1084,90 +1028,6 @@ function renderPairBar(svg, opts){
     .textContent = '계획 대비 ' + diffFmt(diff);
 }
 
-/* ---------------- ⑧ 손익분기 게이지 ---------------- */
-function renderBepGauge(svg, plan, actual){
-  svg.innerHTML = '';
-  const vb = svg.viewBox.baseVal, W = vb.width;
-  const margin = {left:52, right:22, top:34};
-  const innerW = W-margin.left-margin.right;
-  const defsId = addDefs(svg, {plan:cssVar('--plan'), actual:cssVar('--actual')});
-  const g = el('g', {}, svg);
-  const scaleMax = Math.max(plan.breakEven, actual.breakEven, plan.revenue, actual.revenue)*1.1;
-  const trackH = 30, rowGap = 34;
-
-  [['계획', plan, 'plan'], ['실적', actual, 'actual']].forEach(([lab, s, key], i)=>{
-    const yy = margin.top + i*(trackH+rowGap);
-    el('text', {x:margin.left-12, y:yy+trackH/2+5, 'text-anchor':'end',
-                style:'font-size:12.5px;font-weight:700;', fill:cssVar('--ink')}, g).textContent = lab;
-    el('rect', {x:margin.left, y:yy, width:innerW, height:trackH, rx:8, fill:cssVar('--surface-2')}, g);
-
-    const bw = s.revenue/scaleMax*innerW;
-    const bex = margin.left + s.breakEven/scaleMax*innerW;
-    // 적자 구간 음영 (0 → 손익분기)
-    el('rect', {x:margin.left, y:yy, width:bex-margin.left, height:trackH, rx:8,
-                fill:cssVar('--critical'), opacity:0.07}, g);
-    el('path', Object.assign({d:hBarPath(margin.left, yy+5, Math.max(bw,4), trackH-10, 6),
-                              fill:`url(#${defsId}-${key}-h)`}, ANIM?{class:'fade'}:{}), g);
-    el('text', {x:margin.left+10, y:yy+trackH/2+4.5, style:'font-size:11.5px;font-weight:700;', fill:'#fff'}, g)
-      .textContent = '매출 '+fmt1(s.revenue)+'억';
-
-    // 손익분기 마커 (깃발)
-    el('line', {x1:bex, x2:bex, y1:yy-9, y2:yy+trackH+7, stroke:cssVar('--ink'), 'stroke-width':2, opacity:0.8}, g);
-    el('path', {d:`M${bex},${yy-9} l0,-2 l7,4.5 l-7,4.5 z`, fill:cssVar('--ink'), opacity:0.8}, g);
-    el('text', {x:bex+2, y:yy+trackH+20, 'text-anchor':'middle',
-                style:'font-size:11px;font-weight:700;', fill:cssVar('--ink-2')}, g)
-      .textContent = '적자 탈출선 '+fmt1(s.breakEven)+'억';
-
-    const pct = s.revenue/s.breakEven;
-    el('text', {x:margin.left+innerW, y:yy-10, 'text-anchor':'end',
-                style:'font-size:11.5px;font-weight:700;', fill: pct>=1?cssVar('--good'):cssVar('--critical')}, g)
-      .textContent = '탈출선의 '+fmtPct(pct,0);
-  });
-}
-
-/* ---------------- ⑨ 계획 vs 실적 선 비교 ---------------- */
-function renderLineCompare(svg, opts){
-  const {labels, plan, actual, estFlags=null, valueFmt=fmt1, unit='', diffUnit=null} = opts;
-  svg.innerHTML = '';
-  const vb = svg.viewBox.baseVal, W = vb.width, H = vb.height;
-  const margin = {top:34, right:16, bottom:32, left:48};
-  const innerW = W-margin.left-margin.right, innerH = H-margin.top-margin.bottom;
-  const defsId = addDefs(svg, {actual:cssVar('--actual')});
-  const g = el('g', {}, svg);
-
-  const all = plan.concat(actual);
-  const ticks = niceTicks(Math.min(0, ...all), Math.max(...all), 5);
-  const vmin = ticks[0], vmax = ticks[ticks.length-1];
-  const y = v => margin.top + innerH - ((v-vmin)/(vmax-vmin))*innerH;
-  const n = labels.length, bandW = innerW/n, x = i => margin.left + bandW*(i+0.5);
-
-  drawFrame(g, {ticks, y, margin, innerW, innerH, valueFmt, estFlags, bandW, defsId});
-
-  const path = arr => arr.map((v,i)=>(i?'L':'M')+x(i).toFixed(1)+' '+y(v).toFixed(1)).join(' ');
-  el('path', {d:path(plan), fill:'none', stroke:cssVar('--plan'), 'stroke-width':2,
-              'stroke-dasharray':'6,4', 'stroke-linecap':'round', 'stroke-linejoin':'round'}, g);
-  el('path', {d:path(actual), fill:'none', stroke:cssVar('--actual'), 'stroke-width':2.6,
-              'stroke-linecap':'round', 'stroke-linejoin':'round'}, g);
-  actual.forEach((v,i)=>{
-    el('circle', {cx:x(i), cy:y(v), r:3.4, fill:cssVar('--actual'),
-                  stroke:cssVar('--surface'), 'stroke-width':1.8}, g);
-  });
-  if (vmin<0 && vmax>0) el('line', {class:'zero-line', x1:margin.left, x2:margin.left+innerW, y1:y(0), y2:y(0)}, g);
-
-  labels.forEach((lab,i)=>{
-    el('text', {class:'axis-label', x:x(i), y:margin.top+innerH+19, 'text-anchor':'middle'}, g).textContent = lab;
-    const hit = el('rect', {class:'hit', x:margin.left+i*bandW, y:margin.top, width:bandW, height:innerH, fill:'transparent'}, g);
-    hit.addEventListener('mousemove', ev=>{
-      showTip(ev.clientX, ev.clientY,
-        `<div class="t-title">${lab}${estFlags&&estFlags[i]?' (추정)':''}</div>
-         <div class="t-row"><span class="k">계획</span><span>${valueFmt(plan[i])}${unit}</span></div>
-         <div class="t-row"><span class="k">실적</span><span>${valueFmt(actual[i])}${unit}</span></div>
-         <div class="t-row"><span class="k">차이</span><span>${fmtSigned(actual[i]-plan[i])}${diffUnit||unit}</span></div>`);
-    });
-    hit.addEventListener('mouseleave', hideTip);
-  });
-}
-
 /* ---------------- KPI 카드 (불릿 + 스파크라인) ---------------- */
 function bulletSvg(planVal, actualVal, favHigh){
   const W=268, H=30;
@@ -1567,7 +1427,7 @@ function cmSegData(which){
     return {label:s.label, color:cssVar(s.color), rev, dc, cm:rev-dc, margin: rev!==0 ? (rev-dc)/rev : 0};
   });
 }
-/* 계획 대비 차감손익 증감 = 물량효과 + 믹스효과 + 마진율효과 (사업별로도 정확히 일치) */
+/* 사업별 매출 · 차감손익률 · 차감손익 기여 (계획 대비 증감 포함) */
 function cmFactors(){
   const p = cmSegData('plan'), a = cmSegData('actual');
   const Rp = p.reduce((s,x)=>s+x.rev,0), Ra = a.reduce((s,x)=>s+x.rev,0);
@@ -1597,8 +1457,7 @@ function structureOf(which){
   const baseCost = g('cost_total') - directCost, left = revenue - directCost;
   const marginRate = revenue!==0 ? left/revenue : 0;
   return {revenue, directCost, baseCost, left, marginRate, per100:marginRate*100,
-          profit:left-baseCost, coverage: baseCost!==0 ? left/baseCost : 0,
-          breakEven: marginRate>0 ? baseCost/marginRate : null};
+          profit:left-baseCost};
 }
 
 function statCard(label, value, delta, deltaCls, foot){
@@ -1613,7 +1472,6 @@ function renderCmStats(){
   const f = cmFactors(), p = structureOf('plan'), a = structureOf('actual');
   const cmGap = f.CMa - f.CMp;
   const rateGapPp = (a.marginRate - p.marginRate)*100;
-  const covGapPp = (a.coverage - p.coverage)*100;
   const ytdCm = ytd(PL.data.profit_after_direct_cost.actual_monthly);
   document.getElementById('cmStatGrid').innerHTML =
     statCard('차감손익 (연간)', `${fmt1(f.CMa)}<span class="unit">억</span>`,
@@ -1622,13 +1480,14 @@ function renderCmStats(){
     statCard('차감손익률', `${fmt1(a.marginRate*100)}<span class="unit">%</span>`,
       `${fmtSigned(rateGapPp)}%p <span class="base">vs 계획 ${fmt1(p.marginRate*100)}%</span>`, rateGapPp>=0?'pos':'neg',
       `매출 ${fmt1(a.revenue)}억 대비 차감손익 ${fmt1(a.left)}억 · 계획 대비 ${fmt1(Math.abs(rateGapPp))}%p ${rateGapPp>=0?'상승':'하락'}`) +
-    statCard('고정비 커버리지', `${fmt1(a.coverage*100)}<span class="unit">%</span>`,
-      `${fmtSigned(covGapPp)}%p <span class="base">vs 계획 ${fmt1(p.coverage*100)}%</span>`, covGapPp>=0?'pos':'neg',
-      `차감손익 ${fmt1(a.left)}억 ÷ 고정비 성격 비용 ${fmt1(a.baseCost)}억`) +
-    statCard('손익분기 매출', `${fmt1(a.breakEven)}<span class="unit">억</span>`,
-      `${fmtSigned(a.breakEven-p.breakEven)}억 <span class="base">vs 계획 ${fmt1(p.breakEven)}억</span>`,
-      (a.breakEven-p.breakEven)<=0?'pos':'neg',
-      `현재 매출 전망 ${fmt1(a.revenue)}억 기준 <b>${fmt1(a.breakEven-a.revenue)}억 부족</b>`);
+    statCard('매출직접비', `${fmt1(a.directCost)}<span class="unit">억</span>`,
+      `${fmtSigned(a.directCost-p.directCost)}억 <span class="base">vs 계획 ${fmt1(p.directCost)}억</span>`,
+      (a.directCost-p.directCost)<=0?'pos':'neg',
+      `매출의 ${fmt1(a.directCost/a.revenue*100)}%가 직접비로 나감 · 계획 ${fmt1(p.directCost/p.revenue*100)}%`) +
+    statCard('영업손익', `${fmt1(a.profit)}<span class="unit">억</span>`,
+      `${fmtSigned(a.profit-p.profit)}억 <span class="base">vs 계획 ${fmt1(p.profit)}억</span>`,
+      (a.profit-p.profit)>=0?'pos':'neg',
+      `차감손익 ${fmt1(a.left)}억 − 고정비 성격 비용 ${fmt1(a.baseCost)}억`);
 }
 
 function renderCmFlow(){
@@ -1637,95 +1496,138 @@ function renderCmFlow(){
   document.getElementById('cmFlowLegend').innerHTML = segments.map(sg=>
     `<span class="legend-item"><span class="legend-swatch" style="background:${sg.color};opacity:.4"></span>${sg.name}</span>`).join('');
   renderMixFlow(document.getElementById('cmShareFlow'), segments, ['매출 비중', '차감손익 기여']);
-
-  const sorted = f.perSeg.slice().sort((x,y)=>(y.reva/f.Ra - y.cma/f.CMa) - (x.reva/f.Ra - x.cma/f.CMa));
-  const worst = sorted[0], best = sorted[sorted.length-1];
-  document.getElementById('cmShareExplain').innerHTML =
-    `<b>${worst.label}</b>은 매출의 <b>${fmtPct(worst.reva/f.Ra)}</b>를 차지하지만 차감손익 기여는 <b>${fmtPct(worst.cma/f.CMa)}</b>에 그칩니다
-     (차감손익률 ${fmt1(worst.ma*100)}%). 반대로 <b>${best.label}</b>은 매출 비중 ${fmtPct(best.reva/f.Ra)}로
-     차감손익의 <b>${fmtPct(best.cma/f.CMa)}</b>를 만들어냅니다 (차감손익률 ${fmt1(best.ma*100)}%).<br>
-     <b>→ 매출 규모와 이익 기여가 역전된 구조로, 외형 성장이 곧 수익성으로 연결되지 않습니다.</b>`;
 }
 
-function renderCmSegTable(){
+/* 매출 × 마진율 = 차감손익 기여 체인 차트 */
+function renderContribChain(svg, rows, totals){
+  svg.innerHTML = '';
+  const g = el('g', {}, svg);
+  const LBL = 88, REV0 = 98, REVW = 250, REVTXT = 360;
+  const MULX = 440, CHIP = 494, CHIPW = 82, EQX = 548, CM0 = 564, CMW = 250, CMTXT = 826;
+  const topY = 44, rowH = 50, barH = 24;
+  const revMax = Math.max(...rows.map(r=>Math.max(r.reva, r.revp))) || 1;
+  const cmMax  = Math.max(...rows.map(r=>Math.max(Math.abs(r.cma), Math.abs(r.cmp)))) || 1;
+
+  const head = (x, t, anchor) => { el('text', {class:'axis-label', x, y:24, 'text-anchor':anchor||'start',
+    style:'font-size:11.5px;font-weight:800;letter-spacing:.02em;'}, g).textContent = t; };
+  head(REV0, '매출 (억원)');
+  head(CHIP, '차감손익률', 'middle');
+  head(CM0, '차감손익 기여 (억원)');
+
+  rows.forEach((r,i)=>{
+    const y = topY + i*rowH, midY = y + barH/2;
+    el('text', {x:LBL, y:midY+4.5, 'text-anchor':'end', style:'font-size:12.5px;font-weight:800;', fill:cssVar('--ink')}, g)
+      .textContent = r.label;
+
+    // 매출 막대
+    const wA = Math.max(r.reva/revMax*REVW, 2), wP = Math.max(r.revp/revMax*REVW, 2);
+    el('rect', {x:REV0, y, width:REVW, height:barH, rx:6, fill:cssVar('--surface-2')}, g);
+    el('path', {d:hBarPath(REV0, y, wA, barH, 6), fill:r.color, opacity:0.5}, g);
+    el('line', {x1:REV0+wP, x2:REV0+wP, y1:y-3, y2:y+barH+3, stroke:cssVar('--ink-2'),
+                'stroke-width':1.4, 'stroke-dasharray':'3,2', opacity:0.8}, g);
+    const revIn = wA > 74;
+    el('text', {x: revIn ? REV0+wA-9 : REV0+REVW-9, y:midY+4, 'text-anchor':'end',
+                style:'font-size:11.5px;font-weight:800;', fill:cssVar('--ink')}, g)
+      .textContent = '매출의 ' + fmtPct(r.reva/totals.Ra);
+    el('text', {x:REVTXT, y:midY+4.5, 'text-anchor':'start', style:'font-size:13px;font-weight:800;', fill:cssVar('--ink')}, g)
+      .textContent = fmt1(r.reva) + '억';
+
+    el('text', {x:MULX, y:midY+5, 'text-anchor':'middle', style:'font-size:15px;font-weight:800;', fill:cssVar('--ink-2')}, g)
+      .textContent = '×';
+
+    // 마진율 칩
+    const col = (r.ma >= totals.CMa/totals.Ra) ? cssVar('--good') : cssVar('--critical');
+    el('rect', {x:CHIP-CHIPW/2, y:y-1, width:CHIPW, height:barH+2, rx:12, fill:col, opacity:0.12}, g);
+    el('rect', {x:CHIP-CHIPW/2, y:y-1, width:CHIPW, height:barH+2, rx:12, fill:'none', stroke:col, 'stroke-width':1, opacity:0.5}, g);
+    el('text', {x:CHIP, y:midY+5, 'text-anchor':'middle', style:'font-size:13px;font-weight:800;', fill:col}, g)
+      .textContent = fmt1(r.ma*100) + '%';
+
+    el('text', {x:EQX, y:midY+5, 'text-anchor':'middle', style:'font-size:15px;font-weight:800;', fill:cssVar('--ink-2')}, g)
+      .textContent = '=';
+
+    // 차감손익 막대
+    const cA = Math.max(Math.abs(r.cma)/cmMax*CMW, 2), cP = Math.max(Math.abs(r.cmp)/cmMax*CMW, 2);
+    el('rect', {x:CM0, y, width:CMW, height:barH, rx:6, fill:cssVar('--surface-2')}, g);
+    el('path', {d:hBarPath(CM0, y, cA, barH, 6), fill: r.cma>=0 ? r.color : cssVar('--critical'), opacity:0.5}, g);
+    el('line', {x1:CM0+cP, x2:CM0+cP, y1:y-3, y2:y+barH+3, stroke:cssVar('--ink-2'),
+                'stroke-width':1.4, 'stroke-dasharray':'3,2', opacity:0.8}, g);
+    const cmIn = cA > 74;
+    el('text', {x: cmIn ? CM0+cA-9 : CM0+CMW-9, y:midY+4, 'text-anchor':'end',
+                style:'font-size:11.5px;font-weight:800;', fill:cssVar('--ink')}, g)
+      .textContent = '이익의 ' + fmtPct(r.cma/totals.CMa);
+    el('text', {x:CMTXT, y:midY+4.5, 'text-anchor':'start', style:'font-size:13px;font-weight:800;', fill:cssVar('--ink')}, g)
+      .textContent = fmt1(r.cma) + '억';
+
+    const hit = el('rect', {class:'hit', x:0, y:y-4, width:960, height:rowH-2, fill:'transparent'}, g);
+    hit.addEventListener('mousemove', ev=>showTip(ev.clientX, ev.clientY,
+      `<div class="t-title">${r.label}</div>
+       <div class="t-row"><span class="k">매출</span><span>${fmt1(r.revp)} → ${fmt1(r.reva)}억</span></div>
+       <div class="t-row"><span class="k">매출직접비</span><span>${fmt1(r.dcp)} → ${fmt1(r.dca)}억</span></div>
+       <div class="t-row"><span class="k">차감손익률</span><span>${fmt1(r.mp*100)}% → ${fmt1(r.ma*100)}%</span></div>
+       <div class="t-row"><span class="k">차감손익</span><span>${fmt1(r.cmp)} → ${fmt1(r.cma)}억 (${fmtSigned(r.gap)})</span></div>`));
+    hit.addEventListener('mouseleave', hideTip);
+  });
+
+  const yT = topY + rows.length*rowH - 8;
+  el('line', {x1:0, x2:900, y1:yT, y2:yT, stroke:cssVar('--line'), 'stroke-width':1}, g);
+  el('text', {x:LBL, y:yT+20, 'text-anchor':'end', style:'font-size:12.5px;font-weight:800;', fill:cssVar('--ink')}, g)
+    .textContent = '합계';
+  el('text', {x:REVTXT, y:yT+20, 'text-anchor':'start', style:'font-size:12.5px;font-weight:800;', fill:cssVar('--ink')}, g)
+    .textContent = fmt1(totals.Ra) + '억';
+  el('text', {x:CHIP, y:yT+20, 'text-anchor':'middle', style:'font-size:12.5px;font-weight:800;', fill:cssVar('--ink')}, g)
+    .textContent = fmt1(totals.CMa/totals.Ra*100) + '%';
+  el('text', {x:CMTXT, y:yT+20, 'text-anchor':'start', style:'font-size:12.5px;font-weight:800;', fill:cssVar('--ink')}, g)
+    .textContent = fmt1(totals.CMa) + '억';
+}
+
+function renderCmChain(){
   const f = cmFactors();
+  const rows = f.perSeg.slice().sort((a,b)=>b.reva-a.reva);
+  renderContribChain(document.getElementById('cmChain'), rows, f);
+
+  const byRev = rows[0];
+  const byCm  = f.perSeg.slice().sort((a,b)=>b.cma-a.cma)[0];
+  const revUp = f.perSeg.slice().sort((a,b)=>(b.reva-b.revp)-(a.reva-a.revp))[0];
+  const cmDn  = f.perSeg.slice().sort((a,b)=>a.gap-b.gap)[0];
+  document.getElementById('cmChainExplain').innerHTML =
+    `매출은 계획 ${fmt1(f.Rp)}억에서 실적 <b>${fmt1(f.Ra)}억</b> (${fmtSigned(f.Ra-f.Rp)}억)으로 늘었지만,
+     차감손익은 ${fmt1(f.CMp)}억에서 <b>${fmt1(f.CMa)}억</b> (${fmtSigned(f.CMa-f.CMp)}억)으로 줄었습니다.<br>
+     · <b>${byRev.label}</b> — 매출 ${fmt1(byRev.reva)}억으로 전체의 ${fmtPct(byRev.reva/f.Ra)}를 차지하지만,
+       차감손익률이 <b>${fmt1(byRev.ma*100)}%</b>라 실제 이익 기여는 ${fmt1(byRev.cma)}억 (${fmtPct(byRev.cma/f.CMa)})에 그칩니다.<br>
+     · <b>${byCm.label}</b> — 매출은 ${fmt1(byCm.reva)}억 (${fmtPct(byCm.reva/f.Ra)})이지만
+       차감손익률 <b>${fmt1(byCm.ma*100)}%</b>로 이익을 가장 많이 남깁니다 (${fmt1(byCm.cma)}억, ${fmtPct(byCm.cma/f.CMa)}).<br>
+     · 계획 대비 매출이 가장 많이 늘어난 곳은 <b>${revUp.label}</b> (${fmtSigned(revUp.reva-revUp.revp)}억),
+       차감손익이 가장 많이 줄어든 곳은 <b>${cmDn.label}</b> (${fmtSigned(cmDn.gap)}억)입니다.<br>
+     <b>→ 마진율이 낮은 사업에서 매출이 늘어난 구조라, 외형은 커졌지만 실제로 남는 이익은 줄었습니다.</b>`;
+
   const row = x => `<tr>
     <td class="name-cell"><span class="dot" style="background:${x.color}"></span>${x.label}</td>
-    <td>${fmt1(x.revp)} → ${fmt1(x.reva)}</td>
+    <td>${fmt1(x.reva)}</td>
+    <td class="diff ${(x.reva-x.revp)>=0?'pos':'neg'}">${fmtSigned(x.reva-x.revp)}</td>
+    <td>${fmtPct(x.reva/f.Ra)}</td>
     <td>${fmt1(x.dcp)} → ${fmt1(x.dca)}</td>
-    <td>${fmt1(x.cmp)} → ${fmt1(x.cma)}</td>
+    <td>${fmt1(x.ma*100)}%</td>
+    <td>${fmt1(x.cma)}</td>
     <td class="diff ${x.gap>=0?'pos':'neg'}">${fmtSigned(x.gap)}</td>
-    <td>${fmt1(x.mp*100)}% → ${fmt1(x.ma*100)}%</td>
     <td>${fmtPct(x.cma/f.CMa)}</td>
   </tr>`;
   document.getElementById('cmSegTable').innerHTML =
-    `<thead><tr>
-       <th>사업</th><th>매출 (계획→실적)</th><th>매출직접비 (계획→실적)</th>
-       <th>차감손익 (계획→실적)</th><th>증감</th><th>차감손익률 (계획→실적)</th><th>차감손익 기여도</th>
-     </tr></thead><tbody>${f.perSeg.map(row).join('')}
+    `<thead><tr><th>사업</th><th>매출 (억)</th><th>계획 대비</th><th>매출 비중</th>
+       <th>매출직접비 (계획→실적)</th><th>차감손익률</th><th>차감손익 (억)</th><th>계획 대비</th><th>이익 기여도</th></tr></thead>
+     <tbody>${rows.map(row).join('')}
      <tr class="emph"><td class="name-cell">합계</td>
-       <td>${fmt1(f.Rp)} → ${fmt1(f.Ra)}</td>
-       <td>${fmt1(f.perSeg.reduce((a,x)=>a+x.dcp,0))} → ${fmt1(f.perSeg.reduce((a,x)=>a+x.dca,0))}</td>
-       <td>${fmt1(f.CMp)} → ${fmt1(f.CMa)}</td>
-       <td class="diff ${f.CMa-f.CMp>=0?'pos':'neg'}">${fmtSigned(f.CMa-f.CMp)}</td>
-       <td>${fmt1(f.CMp/f.Rp*100)}% → ${fmt1(f.CMa/f.Ra*100)}%</td>
+       <td>${fmt1(f.Ra)}</td>
+       <td class="diff ${(f.Ra-f.Rp)>=0?'pos':'neg'}">${fmtSigned(f.Ra-f.Rp)}</td>
+       <td>100.0%</td>
+       <td>${fmt1(f.perSeg.reduce((t,x)=>t+x.dcp,0))} → ${fmt1(f.perSeg.reduce((t,x)=>t+x.dca,0))}</td>
+       <td>${fmt1(f.CMa/f.Ra*100)}%</td>
+       <td>${fmt1(f.CMa)}</td>
+       <td class="diff ${(f.CMa-f.CMp)>=0?'pos':'neg'}">${fmtSigned(f.CMa-f.CMp)}</td>
        <td>100.0%</td></tr>
      </tbody>`;
 }
 
-function renderCmBridge(){
-  const f = cmFactors();
-  renderWaterfall(document.getElementById('cmBridge'), {
-    items:[
-      {label:'계획 차감손익', value:f.CMp, type:'total'},
-      {label:'물량 효과', value:f.volume, type:'delta'},
-      {label:'믹스 효과', value:f.mix, type:'delta'},
-      {label:'마진율 효과', value:f.rate, type:'delta'},
-      {label:'실적 차감손익', value:f.CMa, type:'total'},
-    ], unit:'억', valueFmt:fmt1, favHigh:true});
-
-  const offset = f.volume!==0 ? Math.abs(f.mix/f.volume) : 0;
-  document.getElementById('cmBridgeExplain').innerHTML =
-    `차감손익은 계획 <b>${fmt1(f.CMp)}억</b>에서 실적 <b>${fmt1(f.CMa)}억</b>으로 <b>${fmtSigned(f.CMa-f.CMp)}억</b>
-     (${fmtPctSigned((f.CMa-f.CMp)/Math.abs(f.CMp))}) 변동했습니다.<br>
-     · <b>물량 효과 ${fmtSigned(f.volume)}억</b> — 매출이 계획 대비 ${fmtSigned(f.Ra-f.Rp)}억 증가한 데 따른 효과입니다.<br>
-     · <b>믹스 효과 ${fmtSigned(f.mix)}억</b> — 그 증가분이 차감손익률이 낮은 사업에 집중되면서 발생한 손실입니다.<br>
-     · <b>마진율 효과 ${fmtSigned(f.rate)}억</b> — 각 사업의 차감손익률 자체는 계획 대비 ${f.rate>=0?'개선':'악화'}되었습니다.<br>
-     <b>→ 사업별 수익성 관리(마진율)는 계획대로 이행되었으나, 매출 포트폴리오가 저마진 사업으로 쏠리면서
-     믹스 효과가 물량 효과를 ${offset.toFixed(1)}배 상쇄해 차감손익이 감소했습니다.</b>`;
-
-  const row = x => `<tr>
-    <td class="name-cell"><span class="dot" style="background:${x.color}"></span>${x.label}</td>
-    <td>${fmtPct(x.wp)} → ${fmtPct(x.wa)}</td>
-    <td class="diff ${x.wa-x.wp>=0?'pos':'neg'}">${fmtSigned((x.wa-x.wp)*100)}%p</td>
-    <td class="diff ${x.volume>=0?'pos':'neg'}">${fmtSigned(x.volume)}</td>
-    <td class="diff ${x.mix>=0?'pos':'neg'}">${fmtSigned(x.mix)}</td>
-    <td class="diff ${x.rate>=0?'pos':'neg'}">${fmtSigned(x.rate)}</td>
-    <td class="diff ${x.gap>=0?'pos':'neg'}">${fmtSigned(x.gap)}</td>
-  </tr>`;
-  document.getElementById('cmFactorTable').innerHTML =
-    `<thead><tr><th>사업</th><th>매출 비중 (계획→실적)</th><th>비중 변화</th>
-      <th>물량 효과</th><th>믹스 효과</th><th>마진율 효과</th><th>차감손익 증감</th></tr></thead>
-     <tbody>${f.perSeg.map(row).join('')}
-     <tr class="emph"><td class="name-cell">합계</td><td>100.0% → 100.0%</td><td>–</td>
-       <td class="diff ${f.volume>=0?'pos':'neg'}">${fmtSigned(f.volume)}</td>
-       <td class="diff ${f.mix>=0?'pos':'neg'}">${fmtSigned(f.mix)}</td>
-       <td class="diff ${f.rate>=0?'pos':'neg'}">${fmtSigned(f.rate)}</td>
-       <td class="diff ${f.CMa-f.CMp>=0?'pos':'neg'}">${fmtSigned(f.CMa-f.CMp)}</td></tr>
-     </tbody>`;
-}
-
-function renderCmMonthly(){
-  const cm = PL.data.profit_after_direct_cost, mr = PL.data.margin_after_direct_cost;
-  const est = PL.confirmed_monthly.map(c=>c==='추정');
-  renderTargetBar(document.getElementById('cmMonthAmount'),
-    {labels:MONTHS, plan:cm.plan_monthly, actual:cm.actual_monthly, estFlags:est});
-  renderLineCompare(document.getElementById('cmMonthRate'),
-    {labels:MONTHS, plan:mr.plan_monthly.map(v=>v*100), actual:mr.actual_monthly.map(v=>v*100),
-     estFlags:est, valueFmt:v=>fmt1(v), unit:'%', diffUnit:'%p'});
-}
-
-/* ---------------- 고정비 커버리지 · 손익분기 ---------------- */
+/* ---------------- 손익 구조 ---------------- */
 function renderProfitStructure(){
   const p = structureOf('plan'), a = structureOf('actual');
   const rows = [
@@ -1735,8 +1637,6 @@ function renderProfitStructure(){
     {label:'차감손익률', p:p.per100, a:a.per100, favHigh:true, cls:'rate', unit:'%'},
     {label:'(−) 고정비 성격 비용', sub:'프로그램제작비·간접비·전사관리비', p:p.baseCost, a:a.baseCost, favHigh:false, cls:'sub'},
     {label:'영업손익', p:p.profit, a:a.profit, favHigh:true, cls:'total'},
-    {label:'고정비 커버리지', sub:'차감손익 ÷ 고정비 성격 비용', p:p.coverage*100, a:a.coverage*100, favHigh:true, cls:'rate', unit:'%'},
-    {label:'손익분기 매출 (BEP)', sub:'고정비 ÷ 차감손익률', p:p.breakEven, a:a.breakEven, favHigh:false, cls:'total'},
   ];
   document.getElementById('structureTable').innerHTML =
     `<thead><tr><th>구분</th><th class="col-plan">계획</th><th class="col-actual">실적</th><th class="grp-start">GAP</th></tr></thead><tbody>` +
@@ -1745,16 +1645,17 @@ function renderProfitStructure(){
       return `<tr class="${r.cls}"><td>${r.label}${r.sub?`<span class="rowsub">${r.sub}</span>`:''}</td><td class="col-plan">${fmt1(r.p)}${u}</td><td class="col-actual">${fmt1(r.a)}${u}</td><td class="diff ${gapCls} grp-start">${fmtSigned(gap)}${u}</td></tr>`;
     }).join('') + `</tbody>`;
 
-  renderBepGauge(document.getElementById('bepChart'), p, a);
-  const savedBase = p.baseCost - a.baseCost;
+  const savedBase = p.baseCost - a.baseCost, profitGap = a.profit - p.profit;
   document.getElementById('bepCaption').innerHTML =
-    `차감손익률이 <b>${fmt1(p.per100)}% → ${fmt1(a.per100)}%</b>로 ${fmt1(Math.abs(a.per100-p.per100))}%p 하락하면서,
-     ${savedBase>0?`고정비 성격 비용을 계획 대비 <b>${fmt1(savedBase)}억 절감</b>했음에도 `:''}손익분기 매출은
-     <b>${fmt1(p.breakEven)}억 → ${fmt1(a.breakEven)}억</b>으로 ${fmt1(Math.abs(a.breakEven-p.breakEven))}억 상승했습니다.
-     현재 매출 전망 ${fmt1(a.revenue)}억은 손익분기의 <b>${fmtPct(a.revenue/a.breakEven, 0)}</b> 수준으로,
-     손익분기 도달까지 <b>${fmt1(a.breakEven-a.revenue)}억</b>의 매출이 추가로 필요합니다.
-     <br><b>→ 동일 마진율에서 매출로만 적자를 해소하려면 현재의 ${(a.breakEven/a.revenue).toFixed(1)}배 규모가 필요합니다.
-     매출 확대보다 차감손익률 제고가 선행되어야 합니다.</b>`;
+    `매출은 계획 대비 <b>${fmtSigned(a.revenue-p.revenue)}억</b> 늘었지만, 매출직접비가 <b>${fmtSigned(a.directCost-p.directCost)}억</b>
+     더 나가면서 차감손익은 오히려 <b>${fmtSigned(a.left-p.left)}억</b> 줄었습니다.
+     차감손익률 기준으로는 <b>${fmt1(p.per100)}% → ${fmt1(a.per100)}%</b> (${fmtSigned(a.per100-p.per100)}%p)입니다.<br><br>
+     ${savedBase>0
+       ? `그 손실은 고정비 성격 비용을 계획 대비 <b>${fmt1(savedBase)}억 절감</b>해 메웠습니다.`
+       : `여기에 고정비 성격 비용도 계획 대비 <b>${fmt1(-savedBase)}억 증가</b>했습니다.`}
+     그 결과 영업손익은 ${fmt1(p.profit)}억 → <b>${fmt1(a.profit)}억</b> (${fmtSigned(profitGap)}억)입니다.<br><br>
+     <b>→ 이익이 ${profitGap>=0?'지켜진':'악화된'} 것은 비용 절감 덕분이고, 본업의 수익성(차감손익률)은 계획에 미치지 못했습니다.
+     비용 절감은 한 번 쓰면 끝이므로, 마진율 제고가 다음 과제입니다.</b>`;
 }
 
 /* ---------------- 영업손익 변동 요인 ---------------- */
@@ -1789,81 +1690,6 @@ function renderVarianceWaterfall(){
      손익 개선은 고정비 절감에 의존한 ${fmt1(Math.abs(gap))}억에 그쳤습니다.</b>`;
 }
 
-/* ---------------- 연간 착지 전망 ---------------- */
-function renderScenario(){
-  const remainMonths = 12 - elapsedMonths;
-  const rest = remainMonths>0 ? `${MONTHS[elapsedMonths]}~12월` : '잔여 기간 없음';
-  document.getElementById('scenarioHint').textContent =
-    `1~${elapsedMonths}월 확정 실적 기준 · 잔여 ${remainMonths}개월(${rest}) 소요 재원과 추정치를 비교`;
-  const cards = [
-    {key:'revenue_total', label:'매출', favHigh:true, needWord:'잔여 필요액', avgWord:'월평균 필요액', kind:'rev'},
-    {key:'profit_after_direct_cost', label:'매출직접비 차감손익', favHigh:true, needWord:'잔여 필요액', avgWord:'월평균 필요액', kind:'cm'},
-    {key:'cost_total', label:'비용', favHigh:false, needWord:'잔여 예산', avgWord:'월평균 집행 가능액', kind:'cost'},
-    {key:'profit_total', label:'영업손익', favHigh:true, needWord:'잔여 허용 손실', avgWord:'월평균 허용 손실', kind:'pl'},
-  ].map(cfg=>{
-    const d = PL.data[cfg.key];
-    const planAnnual = d.plan_annual, ytdActual = ytd(d.actual_monthly);
-    const remainNeed = planAnnual - ytdActual;
-    const remainNeedAvg = remainMonths>0 ? remainNeed/remainMonths : 0;
-    const recentAvg = sum(d.actual_monthly.slice(Math.max(0,elapsedMonths-3), elapsedMonths))/Math.min(3, elapsedMonths);
-    const remainForecast = sum(d.actual_monthly.slice(elapsedMonths));
-    const forecastGap = cfg.favHigh ? remainForecast - remainNeed : remainNeed - remainForecast;
-    const multiple = recentAvg!==0 ? remainNeedAvg/recentAvg : null;
-    let verdict, tone, note;
-    if (cfg.kind === 'rev' || cfg.kind === 'cm'){
-      if (forecastGap >= 0){
-        const tough = multiple!==null && multiple > 2;
-        tone = tough ? 'warning' : 'good';
-        verdict = tough ? '달성 가능 · 부담 높음' : '달성 가능';
-        note = `${rest} 추정 합계 ${fmt1(remainForecast)}억은 잔여 필요액 ${fmt1(remainNeed)}억을 `
-             + `<b>${fmt1(Math.abs(forecastGap))}억 상회</b>합니다. 다만 월평균 필요액 ${fmt1(remainNeedAvg)}억은 `
-             + `최근 3개월 실적 월평균 ${fmt1(recentAvg)}억의 <b>${multiple!==null?multiple.toFixed(1):'-'}배</b> 수준으로, `
-             + `하반기 대형 건의 실제 성사 여부가 달성의 전제 조건입니다.`;
-      } else {
-        tone = 'critical'; verdict = '미달 전망';
-        note = `${rest} 추정 합계 ${fmt1(remainForecast)}억을 달성하더라도 잔여 필요액 ${fmt1(remainNeed)}억 대비 `
-             + `<b>${fmt1(Math.abs(forecastGap))}억 미달</b>이 예상됩니다.`;
-      }
-    } else if (cfg.kind === 'cost'){
-      if (forecastGap >= 0){
-        tone = 'good'; verdict = '예산 내 집행 전망';
-        note = `잔여 예산 ${fmt1(remainNeed)}억 대비 ${rest} 추정 집행액이 ${fmt1(remainForecast)}억으로 `
-             + `<b>${fmt1(Math.abs(forecastGap))}억의 여유</b>가 있습니다.`;
-      } else {
-        tone = Math.abs(forecastGap) > planAnnual*0.05 ? 'critical' : 'warning';
-        verdict = '예산 초과 전망';
-        note = `잔여 예산 ${fmt1(remainNeed)}억 대비 ${rest} 추정 집행액이 ${fmt1(remainForecast)}억으로 `
-             + `<b>${fmt1(Math.abs(forecastGap))}억 초과</b>가 예상됩니다. 최근 3개월 월평균 ${fmt1(recentAvg)}억 대비 `
-             + `잔여 기간 월평균은 ${fmt1(remainMonths>0?remainForecast/remainMonths:0)}억으로 집행 규모가 확대됩니다.`;
-      }
-    } else {
-      if (forecastGap >= 0){
-        tone = 'good'; verdict = '계획 내 관리 전망';
-        note = `${rest} 허용 손실 한도 ${fmt1(Math.abs(remainNeed))}억 대비 추정 손실이 ${fmt1(Math.abs(remainForecast))}억으로 `
-             + `<b>${fmt1(Math.abs(forecastGap))}억의 여유</b>가 있습니다.`;
-      } else {
-        tone = 'warning'; verdict = '계획 초과 전망';
-        note = `${rest} 허용 손실 한도는 ${fmt1(Math.abs(remainNeed))}억이나, 추정 손실이 `
-             + `<b>${fmt1(Math.abs(forecastGap))}억 초과</b>할 것으로 예상됩니다.`;
-      }
-    }
-    const rows = [
-      {k:'연간계획', v:`${fmt1(planAnnual)}억`},
-      {k:`1~${elapsedMonths}월 확정실적`, v:`${fmt1(ytdActual)}억`},
-      {k:`${rest} ${cfg.needWord}`, v:`${fmt1(remainNeed)}억`, highlight:true},
-      {k:cfg.avgWord, v:`${fmt1(remainNeedAvg)}억`},
-      {k:'최근 3개월 월평균', v:`${fmt1(recentAvg)}억`},
-      {k:`${rest} 추정 합계`, v:`${fmt1(remainForecast)}억`, cls: forecastGap>=0?'pos':'neg'},
-    ];
-    return `<div class="scenario-card">
-      <div class="sc-top"><span class="sc-title">${cfg.label}</span><span class="sc-verdict ${tone}">${verdict}</span></div>
-      <div class="sc-rows">${rows.map(r=>`<div class="sc-row${r.highlight?' highlight':''}"><span class="k">${r.k}</span><span class="v${r.cls?' '+r.cls:''}">${r.v}</span></div>`).join('')}</div>
-      <div class="sc-note">${note}</div>
-    </div>`;
-  });
-  document.getElementById('scenarioGrid').innerHTML = cards.join('');
-}
-
 /* ---------------- 종합 진단 ---------------- */
 function generateInsights(){
   const f = cmFactors(), p = structureOf('plan'), a = structureOf('actual');
@@ -1877,16 +1703,17 @@ function generateInsights(){
           (${fmtSigned((a.marginRate-p.marginRate)*100)}%p)로 하락했습니다. 매출이 계획 대비 ${fmtSigned(f.Ra-f.Rp)}억 증가한 것과
           상반된 결과입니다.`});
 
+  const revUpSeg = f.perSeg.slice().sort((x,y)=>(y.reva-y.revp)-(x.reva-x.revp))[0];
   out.push({tone:'critical',
-    html:`요인 분해 결과 <b>믹스 효과 ${fmtSigned(f.mix)}억</b>이 <b>물량 효과 ${fmtSigned(f.volume)}억</b>을
-          ${Math.abs(f.mix/f.volume).toFixed(1)}배 상쇄했습니다. 매출 증가분이 차감손익률이 가장 낮은 사업에 집중된 것이
-          수익성 하락의 직접적 원인입니다.`});
+    html:`매출 증가분의 대부분은 <b>${revUpSeg.label}</b>(계획 대비 ${fmtSigned(revUpSeg.reva-revUpSeg.revp)}억)에서 나왔는데,
+          이 사업의 차감손익률은 <b>${fmt1(revUpSeg.ma*100)}%</b>로 전체 평균 ${fmt1(f.CMa/f.Ra*100)}%를 크게 밑돕니다.
+          매출 100억이 늘어도 손에 남는 이익은 ${fmt1(revUpSeg.ma*100)}억뿐이라, 외형 성장이 이익으로 연결되지 않았습니다.`});
 
   const allUp = f.perSeg.every(x=>x.ma >= x.mp);
   out.push({tone: allUp?'good':'neutral',
-    html:`반면 <b>마진율 효과는 ${fmtSigned(f.rate)}억</b>으로, ${allUp?'전 사업의 차감손익률이 계획을 상회':'사업별 차감손익률은 계획과 유사한 수준'}했습니다
+    html:`사업별 차감손익률 자체는 ${allUp?'전 사업이 계획을 상회':'계획과 유사한 수준'}했습니다
           (${f.perSeg.filter(x=>x.dca>0).map(x=>`${x.label} ${fmt1(x.mp*100)}%→${fmt1(x.ma*100)}%`).join(', ')}).
-          개별 사업의 수익성 관리는 계획대로 이행되었으며, 문제는 포트폴리오 구성에 있습니다.`});
+          개별 사업의 수익성 관리는 계획대로 이행되었으며, 문제는 어느 사업에서 매출이 늘었는가에 있습니다.`});
 
   const sorted = f.perSeg.slice().sort((x,y)=>(y.reva/f.Ra - y.cma/f.CMa) - (x.reva/f.Ra - x.cma/f.CMa));
   const w = sorted[0], b = sorted[sorted.length-1];
@@ -1895,11 +1722,11 @@ function generateInsights(){
           <b>${b.label}</b>은 매출 비중 ${fmtPct(b.reva/f.Ra)}로 차감손익의 ${fmtPct(b.cma/f.CMa)}를 창출합니다.
           자원 배분 기준을 매출액에서 차감손익 기여도로 전환할 필요가 있습니다.`});
 
-  out.push({tone: a.coverage>=p.coverage?'good':'critical',
-    html:`<b>고정비 커버리지</b>는 ${fmt1(p.coverage*100)}% → <b>${fmt1(a.coverage*100)}%</b>로 하락했습니다.
-          고정비 성격 비용을 계획 대비 ${fmt1(p.baseCost-a.baseCost)}억 절감했음에도, 차감손익률 하락으로
-          <b>손익분기 매출은 ${fmt1(p.breakEven)}억 → ${fmt1(a.breakEven)}억</b>으로 상승해
-          현재 매출 전망 대비 <b>${fmt1(a.breakEven-a.revenue)}억</b>이 부족합니다.`});
+  out.push({tone: (a.profit-p.profit)>=0?'neutral':'critical',
+    html:`차감손익이 ${fmt1(p.left-a.left)}억 줄었음에도 <b>영업손익은 ${fmt1(p.profit)}억 → ${fmt1(a.profit)}억</b>
+          (${fmtSigned(a.profit-p.profit)}억)으로 ${(a.profit-p.profit)>=0?'오히려 개선':'악화'}됐는데, 이는
+          <b>고정비 성격 비용을 계획 대비 ${fmt1(p.baseCost-a.baseCost)}억 절감</b>한 덕분입니다.
+          비용 절감은 반복해서 쓸 수 있는 카드가 아니므로, 차감손익률 회복이 없으면 내년에는 그대로 손실로 돌아옵니다.`});
 
   const remainShare = sum(rev.actual_monthly.slice(elapsedMonths))/rev.actual_annual;
   if (remainShare > 0.4) out.push({tone:'warning',
@@ -2177,12 +2004,9 @@ function renderAll(){
   renderMonthInsights();
   renderCmStats();
   renderCmFlow();
-  renderCmSegTable();
-  renderCmBridge();
-  renderCmMonthly();
+  renderCmChain();
   renderProfitStructure();
   renderVarianceWaterfall();
-  renderScenario();
   renderInsights();
 }
 buildGapPanels();
@@ -2199,7 +2023,7 @@ window.addEventListener('resize', ()=>{
   clearTimeout(resizeTimer);
   resizeTimer = setTimeout(()=>{
     renderGapCharts(); renderMomChart(); renderDcpCharts(); renderMixChart();
-    renderCmFlow(); renderCmBridge(); renderCmMonthly();
+    renderCmFlow(); renderCmChain();
     renderProfitStructure(); renderVarianceWaterfall();
   }, 140);
 });
